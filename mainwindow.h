@@ -14,6 +14,7 @@ public:
 private slots:
     void oneSend();
     void COMInit();
+    void readADC();
 };
 
 #endif // MAINWINDOW_H

@@ -8,6 +8,9 @@ QT       += core gui
 QT += serialport
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+INCLUDEPATH += C:/QWT/include
+LIBS += -LC:/QWT/lib -lqwt
+
 TARGET = mem_prog
 TEMPLATE = app
 
@@ -25,7 +28,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+    drawing.cpp
 
 HEADERS += \
-        mainwindow.h
+        mainwindow.h \
+    drawing.h
