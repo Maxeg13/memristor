@@ -64,7 +64,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     timer.setInterval(10);
-    connect(&timer, SIGNAL(timeout()),this,SLOT(oneSend()));
+//    connect(&timer, SIGNAL(timeout()),this,SLOT(oneSend()));
     serial_le=new QLineEdit("COM14");
     V1_le=new QLineEdit("100");
     V2_le=new QLineEdit("-50");
@@ -98,11 +98,11 @@ MainWindow::MainWindow(QWidget *parent)
     central->setLayout(lt);
     setCentralWidget(central);
 
-    connect(V1_le,SIGNAL(returnPressed()),&timer,SLOT(start()));
-    connect(V2_le,SIGNAL(returnPressed()),&timer,SLOT(start()));
-    connect(t1_le,SIGNAL(returnPressed()),&timer,SLOT(start()));
-    connect(t2_le,SIGNAL(returnPressed()),&timer,SLOT(start()));
-    connect(T_le,SIGNAL(returnPressed()),&timer,SLOT(start()));
+    connect(V1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
+    connect(V2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
+    connect(t1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
+    connect(t2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
+    connect(T_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
 }
 
 
@@ -130,38 +130,70 @@ void MainWindow::COMInit()
 void MainWindow::oneSend()
 {
 
+//    char c;
+//    switch(timer_cnt)
+//    {
+//    case 0:
+//        c=V1_le->text().toInt();
+//        port.write(&c,1);
+//        timer_cnt++;
+//        break;
+//    case 1:
+//        c=V2_le->text().toInt();
+//        port.write(&c,1);
+//        timer_cnt++;
+//        break;
+//    case 2:
+//        c=t1_le->text().toInt();
+//        port.write(&c,1);
+//        timer_cnt++;
+//        break;
+//    case 3:
+//        c=t2_le->text().toInt();
+//        port.write(&c,1);
+//        timer_cnt++;
+//        break;
+//    case 4:
+//        c=T_le->text().toInt();
+//        port.write(&c,1);
+//        timer_cnt=0;
+//        timer.stop();
+//        break;
+
+//    }
+
+
     char c;
-    switch(timer_cnt)
+   // switch(timer_cnt)
     {
-    case 0:
+//    case 0:
         c=V1_le->text().toInt();
         port.write(&c,1);
         timer_cnt++;
-        break;
-    case 1:
+//        break;
+//    case 1:
         c=V2_le->text().toInt();
         port.write(&c,1);
         timer_cnt++;
-        break;
-    case 2:
+//        break;
+//    case 2:
         c=t1_le->text().toInt();
         port.write(&c,1);
         timer_cnt++;
-        break;
-    case 3:
+//        break;
+//    case 3:
         c=t2_le->text().toInt();
         port.write(&c,1);
-        timer_cnt++;
-        break;
-    case 4:
+//        timer_cnt++;
+//        break;
+//    case 4:
         c=T_le->text().toInt();
         port.write(&c,1);
         timer_cnt=0;
         timer.stop();
-        break;
+//        break;
 
     }
-    //    qDebug()<<timer_cnt;
 
 }
 
