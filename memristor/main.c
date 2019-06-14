@@ -9,8 +9,8 @@
 
 
 
-#define LDAC PD1
-#define SYNC PD2
+#define LDAC PD2
+#define SYNC PD3
 
 #define DDR_SPI DDRB
 #define DD_MISO PB4
@@ -25,10 +25,25 @@ uint16_t x16=0;
 uint16_t y16=0;
 uint8_t t1;
 uint8_t t2;
+uint8_t Tt2;
 uint8_t T;
 uint8_t send8;
 uint8_t ptr=0;
 char c;
+int ctr;
+int event_ctr;
+int time_step=4;
+int eventN=100;
+
+void timer_init()
+{
+    TCCR2A = 0;        // set entire TCCR1A register to 0
+    TCCR2B = 0;
+    //    TCCR2B |= (1<<CS22) | (1<<CS20); // PRESCALER 1024
+    TCCR2B |= (1<<CS21) ;
+    // enable Timer1 overflow interrupt:
+    TIMSK2 = (1 << TOIE2);
+}
 
 void uart_init(unsigned int ubrr)
 {
@@ -36,7 +51,7 @@ void uart_init(unsigned int ubrr)
 	UBRR0H = (unsigned char)(ubrr>>8);
 	UBRR0L = (unsigned char)ubrr;
 	/*Enable receiver and transmitter */
-	UCSR0B = (1<<RXCIE0)|(1<<RXEN0);
+	UCSR0B = (1<<RXCIE0)|(1<<RXEN0)|(1<<TXEN0);
 	/* Set frame format: 8data, 2stop bit */
 	UCSR0C = (1<<USBS0)|(3<<UCSZ00);
 }
@@ -78,21 +93,17 @@ void main(void)
 {
 	sei();
 	SPI_MasterInit();
-    DDRD = 0b000000110;	
+	timer_init();
+    DDRD = 0b000001100;	
 	uart_init(BAUDRATE);
 	
 	
 	
     while(1)
     {
-		//if(0)
-		//if ((UCSR0A & (1<<RXC0)))
-		{	
-		//	x16=UDR0*16;
-		//	UDR0=x16/16;
-		}
 		
-		//x16+=1;		
+		//x16+=1;	
+/*		
 		OneSend(x16);
 		PORTD&=~(1<<LDAC);
 		PORTD|=(1<<LDAC);
@@ -114,20 +125,72 @@ void main(void)
 		PORTD&=~(1<<LDAC);
 		PORTD|=(1<<LDAC);
 		_delay_ms(50);
-
-        //_delay_ms(MIG);     // Ждем 0,5 секунды
-
-        //  VD = 0b000000010; // Включаем 2-й
-		//	VD = 0b000000010;
-		//_delay_ms(MIG); 
-        //_delay_ms(MIG);     // Ждем 0,5 секунды
-
-        //   VD = 0b000000000; // Выключаем 2-й
-
-        // _delay_ms(MIG);     // Ждем 0,5 секунды
+*/
 
     }
 
+}
+
+ISR(TIMER2_OVF_vect)
+{
+
+	if(ctr==time_step)
+	{
+		if(event_ctr==0)
+		{
+		OneSend(x16);
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		}
+		else if(event_ctr==t1)
+		{
+		OneSend(0);
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		}
+		else if(event_ctr==T)
+		{
+		OneSend(y16);
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		}
+		else if(event_ctr==Tt2)
+		{
+		OneSend(0);
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		}
+	
+		ctr=0;
+		event_ctr++;
+		if(event_ctr==eventN)
+			event_ctr=0;
+	}
+	ctr++;
+		
+		/*
+			OneSend(x16);
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		
+		_delay_ms(t1);
+		
+		OneSend(0);
+				PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		
+		_delay_ms(T);
+		
+				OneSend(y16);				
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		
+		_delay_ms(t2);
+		OneSend(0);
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		_delay_ms(50);
+		*/
 }
 
 ISR(USART_RX_vect)
@@ -150,6 +213,7 @@ ISR(USART_RX_vect)
 		T=UDR0;
 		break;
 	}
+	Tt2=T+t2;
 	//UDR0=x16/16;
 	ptr++;
 	ptr%=5;
