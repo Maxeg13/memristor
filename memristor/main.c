@@ -25,15 +25,27 @@ uint16_t x16=0;
 uint16_t y16=0;
 uint8_t t1;
 uint8_t t2;
-uint8_t Tt2;
+uint8_t dTt2;
+uint8_t dT;
 uint8_t T;
 uint8_t send8;
 uint8_t ptr=0;
 char c;
+uint8_t _adc;
 int ctr;
 int event_ctr;
 int time_step=4;
 int eventN=100;
+int ADC_cnt;
+
+/* Функция инициализация АЦП */
+void ADC_Init(){
+ ADCSRA |= (1 << ADEN) // Включаем АЦП
+ |(1 << ADPS1)|(1 << ADPS0)|(1 << ADPS1);    // устанавливаем предделитель преобразователя на 8
+ ADMUX |= (0 << REFS1)|(1 << REFS0) //выставляем опорное напряжение, как внешний ИОН
+ |(0 << MUX0)|(0 << MUX1)|(0 << MUX2)|(0 << MUX3); // снимать сигнал будем с  входа PC0 
+}
+
 
 void timer_init()
 {
@@ -96,8 +108,11 @@ void main(void)
 	timer_init();
     DDRD = 0b000001100;	
 	uart_init(BAUDRATE);
+	ADC_Init();
 	
-	
+			ADCSRA |= (1 << ADSC); 
+	ADCL;
+	ADCL;
 	
     while(1)
     {
@@ -136,61 +151,67 @@ ISR(TIMER2_OVF_vect)
 
 	if(ctr==time_step)
 	{
+		//if(ADC_cnt==30)
+		//{
+
+		//	ADC_cnt=0;
+		//}
+		//x16++;
+		if(event_ctr==(1))//ADC!!!
+		{
+			
+		_adc=((ADCL>>2)|(ADCH <<6));
+		if ( ( UCSR0A & (1<<UDRE0)) )			
+			UDR0=_adc;
+
+		ADCSRA |= (1 << ADSC); 
+		}
+		
+		
+		
 		if(event_ctr==0)
 		{
+			
 		OneSend(x16);
 		PORTD&=~(1<<LDAC);
 		PORTD|=(1<<LDAC);
 		}
+		
 		else if(event_ctr==t1)
 		{
+		//if ( ( UCSR0A & (1<<UDRE0)) )		
+		//UDR0=ADCL;	
+			
 		OneSend(0);
 		PORTD&=~(1<<LDAC);
 		PORTD|=(1<<LDAC);
 		}
-		else if(event_ctr==T)
-		{
+		else if(event_ctr==dT)
+		{		
 		OneSend(y16);
 		PORTD&=~(1<<LDAC);
 		PORTD|=(1<<LDAC);
+	
 		}
-		else if(event_ctr==Tt2)
+
+		else if(event_ctr==dTt2)
 		{
+		//if ( ( UCSR0A & (1<<UDRE0)) )		
+		//UDR0=ADCH;	
+		//ADCSRA |= (1 << ADSC); 			
 		OneSend(0);
 		PORTD&=~(1<<LDAC);
 		PORTD|=(1<<LDAC);
-		}
-	
+		}	
 		ctr=0;
 		event_ctr++;
-		if(event_ctr==eventN)
+		ADC_cnt++;
+		if(event_ctr>T)
 			event_ctr=0;
 	}
 	ctr++;
-		
-		/*
-			OneSend(x16);
-		PORTD&=~(1<<LDAC);
-		PORTD|=(1<<LDAC);
-		
-		_delay_ms(t1);
-		
-		OneSend(0);
-				PORTD&=~(1<<LDAC);
-		PORTD|=(1<<LDAC);
-		
-		_delay_ms(T);
-		
-				OneSend(y16);				
-		PORTD&=~(1<<LDAC);
-		PORTD|=(1<<LDAC);
-		
-		_delay_ms(t2);
-		OneSend(0);
-		PORTD&=~(1<<LDAC);
-		PORTD|=(1<<LDAC);
-		_delay_ms(50);
-		*/
+	
+	
 }
 
 ISR(USART_RX_vect)
@@ -210,11 +231,13 @@ ISR(USART_RX_vect)
 		t2=UDR0;
 		break;	
 		case 4:
+		dT=UDR0;
+		case 5:
 		T=UDR0;
 		break;
 	}
-	Tt2=T+t2;
+	dTt2=dT+t2;
 	//UDR0=x16/16;
 	ptr++;
-	ptr%=5;
+	ptr%=6;
 }

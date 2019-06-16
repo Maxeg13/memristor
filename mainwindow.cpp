@@ -9,6 +9,8 @@
 #include "drawing.h"
 using namespace std;
 
+
+
 int ind_p;
 int bufShowSize=1000;
 QwtPlot* d_plot;
@@ -22,6 +24,24 @@ QLineEdit* t1_le;
 QLineEdit* t2_le;
 QLineEdit* dT_le;
 QLineEdit* T_le;
+
+float mvs[]={296, 480, 1020, 1960, 3000};
+float grid[]={10, 20 ,50, 100, 163};
+
+float adc2mvs(float x)
+{
+    if(x<grid[0])
+        return(mvs[0]*(x/grid[0]));
+    else if(x<grid[1])
+        return(mvs[0]+mvs[1]*((x-grid[0])/(grid[1]-grid[0])));
+    else if(x<grid[2])
+        return(mvs[1]+mvs[2]*((x-grid[1])/(grid[2]-grid[1])));
+    else if(x<grid[3])
+        return(mvs[2]+mvs[3]*((x-grid[2])/(grid[3]-grid[2])));
+    else
+        return(mvs[3]+mvs[4]*((x-grid[3])/(grid[4]-grid[3])));
+
+}
 
 vector<float> data_adc;
 
@@ -40,8 +60,10 @@ MainWindow::MainWindow(QWidget *parent)
 {
 
     d_plot = new QwtPlot(this);
-    drawingInit(d_plot,QString("ADC"));
-    d_plot->setAxisScale(QwtPlot::yLeft,0,100);
+    drawingInit(d_plot,QString("kOhms"));
+
+    //y axis
+    d_plot->setAxisScale(QwtPlot::yLeft,0,110);
     d_plot->setAxisScale(QwtPlot::xBottom,0,bufShowSize);
     curveADC=new myCurve(bufShowSize,data_adc,d_plot,"EMG",Qt::black,Qt::black,ind_c);
 
@@ -173,19 +195,34 @@ void MainWindow::COMInit()
 
 void MainWindow::readADC()
 {
+    static int ptr=0;
+    uint8_t buf1;
+    int a,b;
     int N=port.read(buf,30);
     for(int i=0;i<N;i++)
     {
-        //    (uint8_t)buf[i];
-        ind_c=(ind_c+1)%data_adc.size();
-        //    ind_p=ind_c;
+        //        if(ptr==1)
+        {
+            //    (uint8_t)buf[i];
+            ind_c=(ind_c+1)%data_adc.size();
+            //    ind_p=ind_c;
+            //a=buf[i];
+            //b=buf1;
+            //            data_adc[ind_c]=((a<<8)+(b));//for -50  25500
+            //qDebug()<<a;
+            //qDebug()<<b;
+            //qDebug()<<'\n';
+//            data_adc[ind_c]=(.01+(uint8_t)buf[i]);
+                        data_adc[ind_c]=25000./(0.01+adc2mvs((uint8_t)buf[i]));
+            curveADC->signalDrawing(1);
+        }
+        buf1=buf[i];
 
-        data_adc[ind_c]=1000./(1+(uint8_t)buf[i]);//for -50
-//        data_adc[ind_c]=(uint8_t)buf[i];
-        curveADC->signalDrawing(0.019);
+        ptr++;
+        ptr%=2;
     }
 
-//    qDebug()<<N;
+    //    qDebug()<<N;
 
 }
 

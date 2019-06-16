@@ -16,7 +16,7 @@ myCurve::myCurve(int bufShowSize, vector<float> &dataH,QwtPlot* d_plotH,const QS
     dataH.resize(bufShowSize);
     for(int i=0;i<dataH.size();i++)
     {
-        dataH[i ]=cos(i/4.);
+        dataH[i ]=0;
     }
 }
 
