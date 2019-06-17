@@ -33,13 +33,13 @@ float adc2mvs(float x)
     if(x<grid[0])
         return(mvs[0]*(x/grid[0]));
     else if(x<grid[1])
-        return(mvs[0]+mvs[1]*((x-grid[0])/(grid[1]-grid[0])));
+        return(mvs[0]+(x-grid[0])*((mvs[1]-mvs[0])/(grid[1]-grid[0])));
     else if(x<grid[2])
-        return(mvs[1]+mvs[2]*((x-grid[1])/(grid[2]-grid[1])));
+        return(mvs[1]+(x-grid[1])*((mvs[2]-mvs[1])/(grid[2]-grid[1])));
     else if(x<grid[3])
-        return(mvs[2]+mvs[3]*((x-grid[2])/(grid[3]-grid[2])));
+        return(mvs[2]+(x-grid[2])*((mvs[3]-mvs[2])/(grid[3]-grid[2])));
     else
-        return(mvs[3]+mvs[4]*((x-grid[3])/(grid[4]-grid[3])));
+        return(mvs[3]+(x-grid[3])*((mvs[4]-mvs[3])/(grid[4]-grid[3])));
 
 }
 
@@ -213,7 +213,7 @@ void MainWindow::readADC()
             //qDebug()<<b;
             //qDebug()<<'\n';
 //            data_adc[ind_c]=(.01+(uint8_t)buf[i]);
-                        data_adc[ind_c]=25000./(0.01+adc2mvs((uint8_t)buf[i]));
+                        data_adc[ind_c]=100/V1_le->text().toFloat()*20000./(0.01+adc2mvs((uint8_t)buf[i]));
             curveADC->signalDrawing(1);
         }
         buf1=buf[i];
