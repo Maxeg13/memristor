@@ -12,20 +12,25 @@
 //#include"serial.h"
 using namespace std;
 
+
 class myCurve:public QwtPlotCurve
 {
 public:
 
+
+    int& ind_c;
     vector<float> &data;
     QwtPlot* d_plot;
     QwtSymbol *symbol;
-    int& ind_c;
+
 
     myCurve(int bufShowSize, vector<float> &dataH,QwtPlot* d_plotH,const QString &title,
             const QColor &color, const QColor &colorSymbol,int& ind_ch );
+    myCurve(QwtPlot *d_plotH, QString title, QColor color);
     void signalDrawing(float k);
     void pointDrawing(float , float);
     void set_Drawing(vector<float> &x, vector<float> &y, int,float k);
+
 };
 
 

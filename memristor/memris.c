@@ -21,9 +21,7 @@
 #define BAUD 9600                                   // define baud
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
 //#define DD_SS PB0
-uint16_t VAC16;
 uint16_t x16=0;
-uint8_t sync=0;
 uint16_t y16=0;
 uint8_t t1=2;
 uint8_t t2=2;
@@ -31,15 +29,14 @@ uint8_t dTt2=10;
 uint8_t dT;
 uint8_t T;
 uint8_t send8;
-uint8_t ptr=0, UDP_cnt;
+uint8_t ptr=0;
 char c;
 uint8_t ADC_on;
-uint8_t VAC_mode=0;
 uint8_t _adc;
 int ctr;
 uint16_t accum;
 int event_ctr;
-int time_step=7;//3
+int time_step=4;
 int eventN=100;
 int ADC_cnt;
 uint8_t accum_cnt;
@@ -83,7 +80,7 @@ void SPI_MasterInit()
 	//SPSR = (0<<SPI2X);
 }
 //(1<<RXCIE0)|
-void setDAC(uint16_t x)
+void OneSend(uint16_t x)
 {
 	x+=2048;
 	PORTD&=~(1<<SYNC);
@@ -125,24 +122,24 @@ void main(void)
 		
 		//x16+=1;	
 /*		
-		setDAC(x16);
+		OneSend(x16);
 		PORTD&=~(1<<LDAC);
 		PORTD|=(1<<LDAC);
 		
 		_delay_ms(t1);
 		
-		setDAC(0);
+		OneSend(0);
 				PORTD&=~(1<<LDAC);
 		PORTD|=(1<<LDAC);
 		
 		_delay_ms(T);
 		
-				setDAC(y16);				
+				OneSend(y16);				
 		PORTD&=~(1<<LDAC);
 		PORTD|=(1<<LDAC);
 		
 		_delay_ms(t2);
-		setDAC(0);
+		OneSend(0);
 		PORTD&=~(1<<LDAC);
 		PORTD|=(1<<LDAC);
 		_delay_ms(50);
@@ -155,116 +152,70 @@ void main(void)
 ISR(TIMER2_OVF_vect)
 {
 
-	if(ctr>time_step)
+	if(ctr==time_step)
 	{
-		if(!VAC_mode)
-		{
-			//if(ADC_cnt==30)
-			//{
+		//if(ADC_cnt==30)
+		//{
 
-			//	ADC_cnt=0;
-			//}
-			//x16++;
-			if(event_ctr==(1))//ADC!!!
-			{	
-			ADC_on=1;			
-			_adc=((ADCL>>2)|(ADCH <<6));
-			//ADMUX|=(1<<MUX0);
-			ADCSRA |= (1 << ADSC); 
-			}
-			else if(ADC_on)
-			{
-				accum_cnt++;
-				accum+=_adc;
-			}
-			
-			
-			
-			if(event_ctr==0)
-			{
-				
-			setDAC(x16);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			}
-			
-			else if(event_ctr==t1)
-			{
-			//if ( ( UCSR0A & (1<<UDRE0)) )		
-			//UDR0=ADCL;	
-				
-			setDAC(0);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			}
-			else if(event_ctr==dT)
-			{		
-			setDAC(y16);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-		
-			}
-
-			else if(event_ctr==dTt2)
-			{
-			if ( ( UCSR0A & (1<<UDRE0)) )			
-				UDR0=_adc;	
-			//UDR0=(uint8_t)(accum/t2);
-			accum=0;
-			ADC_on=0;
-			accum_cnt=0;
-			//if ( ( UCSR0A & (1<<UDRE0)) )		
-			//UDR0=ADCH;	
-			//ADCSRA |= (1 << ADSC); 			
-			setDAC(0);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			//ADMUX&=~(1<<MUX0);
-
-			}		
-
+		//	ADC_cnt=0;
+		//}
+		//x16++;
+		if(event_ctr==(dT+1))//ADC!!!
+		{	
+		ADC_on=1;			
+		_adc=((ADCL>>2)|(ADCH <<6));
+		//ADMUX|=(1<<MUX0);
+		ADCSRA |= (1 << ADSC); 
 		}
-		else//VAC_mode
+		else if(ADC_on)
 		{
-			static int i=0;
-			i++;
-			switch(UDP_cnt)
-			{
-				case 0:
-				UDR0=255;
-				break;
-				case 1:
-				UDR0=_adc;
-				break;
-				case 2:
-				UDR0=VAC16>>4;					
-			}
-						
-			_adc=((ADCL>>2)|(ADCH <<6));
-			
-			//ADMUX|=(1<<MUX0);
-			
-			
-			setDAC(VAC16);
-			
-			ADCSRA |= (1 << ADSC); 
-			
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			
-			VAC16+=16;
-			
-			
-			UDP_cnt++;
-			UDP_cnt%=3;
-			//UDR0=VAC16>>4;
-			
+			accum_cnt++;
+			accum+=_adc;
 		}
 		
 		
 		
+		if(event_ctr==0)
+		{
+			
+		OneSend(x16);
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		}
 		
-		
+		else if(event_ctr==t1)
+		{
+		//if ( ( UCSR0A & (1<<UDRE0)) )		
+		//UDR0=ADCL;	
+			
+		OneSend(0);
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		}
+		else if(event_ctr==dT)
+		{		
+		OneSend(y16);
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+	
+		}
+
+		else if(event_ctr==dTt2)
+		{
+		if ( ( UCSR0A & (1<<UDRE0)) )			
+			UDR0=_adc;	
+		//UDR0=(uint8_t)(accum/t2);
+		accum=0;
+		ADC_on=0;
+		accum_cnt=0;
+		//if ( ( UCSR0A & (1<<UDRE0)) )		
+		//UDR0=ADCH;	
+		//ADCSRA |= (1 << ADSC); 			
+		OneSend(0);
+		//ADMUX&=~(1<<MUX0);
+		PORTD&=~(1<<LDAC);
+		PORTD|=(1<<LDAC);
+		}	
 		ctr=0;
 		event_ctr++;
 		ADC_cnt++;
@@ -281,45 +232,25 @@ ISR(USART_RX_vect)
 	switch(ptr)
 	{
 		case 0:
-		if(UDR0!=255)
-		{
-			sync=0;
-			ptr--;
-			ptr%=7;
-		}
-		else
-			sync=1;
+		x16=UDR0*16;
 		break;
-		case 1:
-		x16=UDR0<<4;
+		case 1:	
+		y16=UDR0*16;
 		break;
-		case 2:	
-		y16=UDR0<<4;
-		break;
-		case 3:
+		case 2:
 		t1=UDR0;
 		break;		
-		case 4:
+		case 3:
 		t2=UDR0;
-		if((t1==0)&&(t2==0))
-		{
-			
-			VAC_mode=1;
-			time_step=4;
-		}
-		else
-			VAC_mode=0;
-			
 		break;	
-		case 5:
+		case 4:
 		dT=UDR0;
-		break;
-		case 6:
+		case 5:
 		T=UDR0;
 		break;
 	}
 	dTt2=dT+t2;
 	//UDR0=x16/16;
 	ptr++;
-	ptr%=7;
+	ptr%=6;
 }

@@ -1,6 +1,7 @@
 #include "drawing.h"
 
-
+vector<float> utilvec;
+int utilint;
 
 
 
@@ -19,6 +20,17 @@ myCurve::myCurve(int bufShowSize, vector<float> &dataH,QwtPlot* d_plotH,const QS
         dataH[i ]=0;
     }
 }
+
+
+myCurve::myCurve(QwtPlot* d_plotH, QString title,
+                 QColor color):
+    data(utilvec),ind_c(utilint)
+{
+    d_plot=d_plotH;
+    setTitle(title);
+    setPen(color,2);
+}
+
 
 void myCurve::signalDrawing(float k)
 {

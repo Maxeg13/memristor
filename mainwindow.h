@@ -15,6 +15,7 @@ private slots:
     void oneSend();
     void COMInit();
     void readADC();
+    void vac_btn_pressed();
 };
 
 #endif // MAINWINDOW_H
