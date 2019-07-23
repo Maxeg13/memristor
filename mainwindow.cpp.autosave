@@ -69,6 +69,7 @@ int timer_cnt;
 QString qstr;
 QSerialPort port;
 int serial_inited;
+myCurve *setCurve;
 
 
 void drawingInit(QwtPlot* d_plot, QString title);
