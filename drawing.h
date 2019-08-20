@@ -29,7 +29,7 @@ public:
     myCurve(QwtPlot *d_plotH, QString title, QColor color);
     void signalDrawing(float k);
     void pointDrawing(float , float);
-    void set_Drawing(vector<float> &x, vector<float> &y, int,float k);
+    void set_Drawing(vector<float> &x, vector<float> &y, int i1=-1, int i2=-1);
 
 };
 

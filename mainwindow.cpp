@@ -104,6 +104,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     set_plot = new QwtPlot(this);
+    set_plot->setAxisScale(1,-128,128);
     drawingInit(set_plot,"VA dependence");
     setCurve=new myCurve(set_plot,QString("VAC"), QColor(255,0,0,255));
     setCurve->setPen(QColor(0,0,0,0));
@@ -132,7 +133,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     d_plot = new QwtPlot(this);
-    drawingInit(d_plot,QString("impedance, kOhms"));
+    drawingInit(d_plot,QString("current"));
 
     //y axis
     d_plot->setAxisScale(QwtPlot::yLeft,0,256);
@@ -296,7 +297,7 @@ void MainWindow::readADC()
             //qDebug()<<b;
             //qDebug()<<'\n';
 
-            data_adc[ind_c]=(.01+(uint8_t)buf[i]);
+            data_adc[ind_c]=256-(.01+(uint8_t)buf[i]);
             //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
             curveADC->signalDrawing(1);
 
@@ -320,19 +321,22 @@ void MainWindow::readADC()
                 }
                 break;
             case 1:
-                current[(current_ind)]=(uint8_t)buf[i];
+                current[current_ind]=-(uint8_t)buf[i];
                 current_ind++;
                 current_ind%=current.size();
-                setCurve->set_Drawing(voltage,current,0,1);
+
+
+
                 break;
 
             case 2:
                 //                data_adc[ind_c]=(.01+(uint8_t)buf[i]);
                 ind_c=(ind_c+1)%data_adc.size();
                 //                curveADC->signalDrawing(1);
-                voltage[(voltage_ind)]=(int8_t)buf[i];
+                voltage[voltage_ind]=-(int8_t)buf[i];
                 voltage_ind++;
                 voltage_ind%=voltage.size();
+                setCurve->set_Drawing(voltage,current,voltage_ind,current_ind);
                 break;
 
 
@@ -343,7 +347,7 @@ void MainWindow::readADC()
 
         }
     }
-    //    qDebug()<<data_adc.size();
+//        qDebug()<<current_ind<<voltage_ind;
     //    qDebug()<<N;
 
 }
@@ -352,48 +356,55 @@ void MainWindow::vac_btn_pressed()
 {
     VAC_mode=!VAC_mode;
     char c;
+    oneSend();
     if(VAC_mode)
     {
+        data_adc.resize(data_adc.size(),0);
+        for (auto& it:data_adc)
+            it=0;
+
+        curveADC->signalDrawing(1);
+
         vac_btn->setText("VAC mode");
 
-        c=255;
-        port.write(&c,1);
-        //    case 0:
+//        c=255;
+//        port.write(&c,1);
+//        //    case 0:
 
-        V1=V1_le->text().toFloat();
-        c=V1_le->text().toInt();
-        port.write(&c,1);
-        timer_cnt++;
-        //        break;
-        //    case 1:
-        c=V2_le->text().toInt();
-        port.write(&c,1);
-        timer_cnt++;
-        //        break;
-        //    case 2:
-        c=0;
-        port.write(&c,1);
-        timer_cnt++;
-        //        break;
-        //    case 3:
-        c=0;
-        port.write(&c,1);
-        //        timer_cnt++;
-        //        break;
-        //    case 4:
-        c=dT_le->text().toInt();
-        port.write(&c,1);
+//        V1=V1_le->text().toFloat();
+//        c=V1_le->text().toInt();
+//        port.write(&c,1);
+//        timer_cnt++;
+//        //        break;
+//        //    case 1:
+//        c=V2_le->text().toInt();
+//        port.write(&c,1);
+//        timer_cnt++;
+//        //        break;
+//        //    case 2:
+//        c=0;
+//        port.write(&c,1);
+//        timer_cnt++;
+//        //        break;
+//        //    case 3:
+//        c=0;
+//        port.write(&c,1);
+//        //        timer_cnt++;
+//        //        break;
+//        //    case 4:
+//        c=dT_le->text().toInt();
+//        port.write(&c,1);
 
-        c=T_le->text().toInt();
-        port.write(&c,1);
-        //        timer_cnt=0;
-        //        timer.stop();
-        //        break;
+//        c=T_le->text().toInt();
+//        port.write(&c,1);
+//        //        timer_cnt=0;
+//        //        timer.stop();
+//        //        break;
     }
     else
     {
         vac_btn->setText("no VAC mode");
-        oneSend();
+
     }
 
 }
@@ -441,6 +452,10 @@ void MainWindow::oneSend()
         c=255;
         port.write(&c,1);
         //    case 0:
+
+        c=VAC_mode;
+        port.write(&c,1);
+
 
         V1=V1_le->text().toFloat();
         c=V1_le->text().toInt();
