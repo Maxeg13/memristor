@@ -21,10 +21,10 @@
 #define BAUD 9600                                   // define baud
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
 //#define DD_SS PB0
-uint16_t VAC16;
-uint16_t x16=0;
+int16_t VAC16=0;
+int16_t x16=0;
+int16_t y16=0;
 uint8_t sync=0;
-uint16_t y16=0;
 uint8_t t1=2;
 uint8_t t2=2;
 uint8_t dTt2=10;
@@ -39,7 +39,7 @@ uint8_t _adc;
 int ctr;
 uint16_t accum;
 int event_ctr;
-int time_step=7;//3
+int time_step=3;//3
 int eventN=100;
 int ADC_cnt;
 uint8_t accum_cnt;
@@ -83,8 +83,9 @@ void SPI_MasterInit()
 	//SPSR = (0<<SPI2X);
 }
 //(1<<RXCIE0)|
-void setDAC(uint16_t x)
+void setDAC(int16_t x)//_____________bipolar!!!
 {
+	x=-x;
 	x+=2048;
 	PORTD&=~(1<<SYNC);
 	//_delay_us(30);  
@@ -226,6 +227,7 @@ ISR(TIMER2_OVF_vect)
 		}
 		else//VAC_mode
 		{
+			//UDR0=255;
 			static int i=0;
 			i++;
 			switch(UDP_cnt)
@@ -246,13 +248,23 @@ ISR(TIMER2_OVF_vect)
 			
 			
 			setDAC(VAC16);
+			//UDR0=_adc;
 			
 			ADCSRA |= (1 << ADSC); 
 			
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 			
+			
 			VAC16+=16;
+			if(VAC16>y16)//just positive
+			{
+				//VAC16=x16|0xFC00;
+				VAC16=-x16;
+				//VAC16=-VAC16;
+			}
+				//VAC16=-y16;//just positive
+			
 			
 			
 			UDP_cnt++;
@@ -291,35 +303,33 @@ ISR(USART_RX_vect)
 			sync=1;
 		break;
 		case 1:
+		VAC_mode=UDR0;
+		if(VAC_mode)
+			time_step=7;
+		else
+			time_step=4;
+		break;
+		case 2:
 		x16=UDR0<<4;
 		break;
-		case 2:	
+		case 3:	
 		y16=UDR0<<4;
 		break;
-		case 3:
+		case 4:
 		t1=UDR0;
 		break;		
-		case 4:
-		t2=UDR0;
-		if((t1==0)&&(t2==0))
-		{
-			
-			VAC_mode=1;
-			time_step=4;
-		}
-		else
-			VAC_mode=0;
-			
-		break;	
 		case 5:
+		t2=UDR0;
+		break;	
+		case 6:
 		dT=UDR0;
 		break;
-		case 6:
+		case 7:
 		T=UDR0;
 		break;
 	}
 	dTt2=dT+t2;
 	//UDR0=x16/16;
 	ptr++;
-	ptr%=7;
+	ptr%=8;
 }

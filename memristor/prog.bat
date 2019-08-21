@@ -1,2 +1,2 @@
 make all
-avrdude -c avrisp -p m328p -b 19000 -P com8 -U flash:w:main.hex
+avrdude -c avrisp -p m328p -b 19000 -P com5 -U flash:w:main.hex

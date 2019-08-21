@@ -14,7 +14,7 @@ public:
 private slots:
     void oneSend();
     void COMInit();
-    void readADC();
+    void UDP_get();
     void vac_btn_pressed();
 };
 

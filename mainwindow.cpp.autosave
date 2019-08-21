@@ -418,7 +418,7 @@ void MainWindow::oneSend()
         port.write(&c,1);
 
 
-        V1=V1_le->text().toFloat();
+//        V1=V1_le->text().toFloat();
 //        V2=V2_le->text().toFloat();
 
         if(VAC_mode)
@@ -433,7 +433,7 @@ void MainWindow::oneSend()
             c=VAC_max_le->text().toInt();
         else
             c=V2_le->text().toInt();
-        qDebug()<<VAC_max_le->text().toInt();
+//        qDebug()<<VAC_max_le->text().toInt();
         port.write(&c,1);
         timer_cnt++;
         //        break;
