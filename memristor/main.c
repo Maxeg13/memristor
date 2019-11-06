@@ -234,23 +234,27 @@ ISR(TIMER2_OVF_vect)
 			{
 				case 0:
 				UDR0=255;
+				ADCSRA |= (1 << ADSC); 
 				break;
 				case 1:
 				UDR0=_adc;
 				break;
 				case 2:
-				UDR0=VAC16>>4;					
+				UDR0=VAC16>>4;	
+				_adc=((ADCL>>2)|(ADCH <<6));				
 			}
-						
-			_adc=((ADCL>>2)|(ADCH <<6));
 			
-			//ADMUX|=(1<<MUX0);
+//old version of _adc transfer			
+			
+			//_adc
+			
+			
 			
 			
 			setDAC(VAC16);
 			//UDR0=_adc;
 			
-			ADCSRA |= (1 << ADSC); 
+			
 			
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
