@@ -10,7 +10,7 @@
 #include <QPalette>
 #include "drawing.h"
 using namespace std;
-QPushButton *vac_btn, *filler_btn, *filler_btn1;
+QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1;
 
 enum MODE
 {
@@ -22,12 +22,12 @@ enum MODE
 MODE MD;
 
 int ind_p;
-int VAC_buf=300;//400
+int VAC_buf=530;//400
 int bufShowSize=1000;
 QwtPlot *d_plot, *set_plot;
 myCurve* curveADC;
 int ind_c;
-
+QLabel* V1_label;
 QLineEdit* serial_le;
 QLineEdit* V1_le;
 QLineEdit* V2_le;
@@ -37,6 +37,7 @@ QLineEdit* dT_le;
 QLineEdit* T_le;
 QLineEdit* VAC_min_le;
 QLineEdit* VAC_max_le;
+uint8_t PROGRAM_done=0;
 float V1;
 
 float mvs[]={296, 480, 1020, 1960, 3000};
@@ -108,8 +109,13 @@ MainWindow::MainWindow(QWidget *parent)
     //    vector<float> vv=vector<float>(2);
     //    vv[3]=3;
     //    qDebug()<<vv.size();
-    vac_btn=new QPushButton("no VAC mode");
+    prog_btn=new QPushButton("PROGRAM MODE");
+    custom_btn=new QPushButton("CUSTOM MODE");
+    vac_btn=new QPushButton("VAC MODE");
     connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
+    connect(custom_btn,SIGNAL(pressed()),this,SLOT(custom_btn_pressed()));
+    //    connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
+    connect(prog_btn,SIGNAL(pressed()),this,SLOT(prog_btn_pressed()));
     filler_btn=new QPushButton();
     filler_btn1=new QPushButton();
 
@@ -165,7 +171,7 @@ MainWindow::MainWindow(QWidget *parent)
     int labels_width=60;
     QLabel* port_label=new QLabel("COM:");
     port_label->setMaximumWidth(labels_width);
-    QLabel* V1_label=new QLabel("V1");
+    V1_label=new QLabel("V1");
     V1_label->setMaximumWidth(labels_width);
     QLabel* V2_label=new QLabel("V2");
     V2_label->setMaximumWidth(labels_width);
@@ -202,11 +208,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     serial_le=new QLineEdit("COM14");
     V1_le=new QLineEdit("10");
-    V2_le=new QLineEdit("3");
-    t1_le=new QLineEdit("3");
-    t2_le=new QLineEdit("12");
+    V2_le=new QLineEdit("4");
+    t1_le=new QLineEdit("6");
+    t2_le=new QLineEdit("6");
     dT_le=new QLineEdit("10");
-    T_le=new QLineEdit("60");
+    T_le=new QLineEdit("20");
     VAC_min_le=new QLineEdit("126");
     VAC_max_le=new QLineEdit("126");
 
@@ -225,43 +231,45 @@ MainWindow::MainWindow(QWidget *parent)
     //    serial_le=new QLineEdit("");
     auto* central = new QWidget;
     auto* lt=new QGridLayout;
-    lt->addWidget(label,0,0,9,1);
-    label->setMaximumWidth(500);
-    lt->addWidget(port_label,0,1);
-    lt->addWidget(serial_le,0,2);
+    lt->addWidget(label,0,0,9,3);
+    label->setMaximumWidth(430);
+    lt->addWidget(port_label,0,3);
+    lt->addWidget(serial_le,0,4);
 
-    lt->addWidget(V1_label,1,1);
-    lt->addWidget(V1_le,1,2);
+    lt->addWidget(V1_label,1,3);
+    lt->addWidget(V1_le,1,4);
 
-    lt->addWidget(V2_label,2,1);
-    lt->addWidget(V2_le,2,2);
+    lt->addWidget(V2_label,2,3);
+    lt->addWidget(V2_le,2,4);
 
-    lt->addWidget(t1_label,3,1);
-    lt->addWidget(t1_le,3,2);
+    lt->addWidget(t1_label,3,3);
+    lt->addWidget(t1_le,3,4);
 
-    lt->addWidget(t2_label,4,1);
-    lt->addWidget(t2_le,4,2);
+    lt->addWidget(t2_label,4,3);
+    lt->addWidget(t2_le,4,4);
 
-    lt->addWidget(dT_label,5,1);
-    lt->addWidget(dT_le,5,2);
+    lt->addWidget(dT_label,5,3);
+    lt->addWidget(dT_le,5,4);
 
-    lt->addWidget(T_label,6,1);
-    lt->addWidget(T_le,6,2);
+    lt->addWidget(T_label,6,3);
+    lt->addWidget(T_le,6,4);
     //    lt->addWidget(T_le,6,2);
 
-    lt->addWidget(VAC_min_label,7,1);
-    lt->addWidget(VAC_min_le,7,2);
+    lt->addWidget(VAC_min_label,7,3);
+    lt->addWidget(VAC_min_le,7,4);
 
-    lt->addWidget(VAC_max_label,8,1);
-    lt->addWidget(VAC_max_le,8,2);
+    lt->addWidget(VAC_max_label,8,3);
+    lt->addWidget(VAC_max_le,8,4);
 
-    lt->addWidget(vac_btn,9,0);
-    lt->addWidget(filler_btn,9,1,1,2);
+    lt->addWidget(custom_btn,9,0);
+    lt->addWidget(vac_btn,9,1);
+    lt->addWidget(prog_btn,9,2,1,2);
+    //    lt->addWidget(filler_btn,9,1,1,2);
     //    lt->addWidget(filler_btn1,7,2);
 
 
-    lt->addWidget(d_plot,10,0,1,3);
-    lt->addWidget(set_plot,11,0,1,3);
+    lt->addWidget(d_plot,10,0,1,5);
+    lt->addWidget(set_plot,11,0,1,5);
     //    set_plot->setMaximumWidth(500);
 
 
@@ -279,7 +287,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     timer.setInterval(1);
-
+//prog_btn->set
 
     connect(&timer, SIGNAL(timeout()),this,SLOT(UDP_get()));
 }
@@ -303,6 +311,9 @@ void MainWindow::COMInit()
 
     }
 
+    MD=CUSTOM;
+    oneSend();
+
     serial_le->setDisabled(true);
 
     timer.start();
@@ -318,7 +329,7 @@ void MainWindow::UDP_get()
     int N=port.read(buf,buf_N);
     for(int i=0;i<N;i++)
     {
-        if(!VAC_mode)
+        if(MD==CUSTOM)
         {
             //    (uint8_t)buf[i];
             ind_c=(ind_c+1)%data_adc.size();
@@ -339,7 +350,7 @@ void MainWindow::UDP_get()
 
 
         }
-        else//VAC
+        else if(MD==VAC)//VAC
         {
             //             qDebug()<<(uint8_t)buf[i];
             switch(ptr)
@@ -361,7 +372,7 @@ void MainWindow::UDP_get()
 
                 //                qDebug()<<buf1;
                 //                buf1=(uint8_t)buf[i];
-//                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
+                //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
                 current[current_ind]=-(uint8_t)buf[i];
                 current_ind++;
                 current_ind%=current.size();
@@ -392,43 +403,103 @@ void MainWindow::UDP_get()
 
 
         }
+        else if(MD==PROGRAM)
+        {
+            switch(ptr)
+            {
+            case 0:
+                if((uint8_t)buf[i]!=255)
+                {
+                    //                    qDebug()<<"hello";
+                    ptr=1;
+                    ptr%=3;
+                }
+                break;
+            case 1:
+
+
+                PROGRAM_done=(uint8_t)buf[i];
+                if(PROGRAM_done)
+                {
+                    prog_btn->setText("PROGRAM MODE: DONE");
+//                    prog_btn->set
+                }
+                else
+                    prog_btn->setText("PROGRAM MODE: ...");
+                break;
+            case 2:
+                //    (uint8_t)buf[i];
+                ind_c=(ind_c+1)%data_adc.size();
+                //    ind_p=ind_c;
+                //a=buf[i];
+                //b=buf1;
+                //            data_adc[ind_c]=((a<<8)+(b));//for -50  25500
+                //qDebug()<<a;
+                //qDebug()<<b;
+                //qDebug()<<'\n';
+
+                data_adc[ind_c]=256-(.01+(uint8_t)buf[i]);
+                //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
+                curveADC->signalDrawing(1);
+
+                          //        buf1=buf[i];
+            }
+            ptr++;
+            ptr%=3;
+        }
     }
     //        qDebug()<<current_ind<<voltage_ind;
     //    qDebug()<<N;
 
 }
 
+void MainWindow::custom_btn_pressed()
+{
+//    for (auto& it:data_adc)
+//        it=0;
+    disconnect(&timer, SIGNAL(timeout()),this,SLOT(UDP_get()));
+    V1_label->setText("V1");
+    MD=CUSTOM;
+    oneSend();
+    connect(&timer, SIGNAL(timeout()),this,SLOT(UDP_get()));
+}
+
+void MainWindow::prog_btn_pressed()
+{
+    MD=PROGRAM;
+    V1_label->setText("targ");
+    oneSend();
+    data_adc.resize(data_adc.size(),0);
+    for (auto& it:data_adc)
+        it=0;
+}
+
 void MainWindow::vac_btn_pressed()
 {
-    VAC_mode=!VAC_mode;
-    char c;
+    for(auto& it:current)
+        it=0;
+    for(auto& it:voltage)
+        it=0;
+
+    disconnect(&timer, SIGNAL(timeout()),this,SLOT(UDP_get()));
+    MD=VAC;
+
+    V1_label->setText("V1");
     oneSend();
-    if(VAC_mode)
-    {
-        data_adc.resize(data_adc.size(),0);
-        for (auto& it:data_adc)
-            it=0;
+    data_adc.resize(data_adc.size(),0);
+    for (auto& it:data_adc)
+        it=0;
 
-        curveADC->signalDrawing(1);
+    curveADC->signalDrawing(1);
+    connect(&timer, SIGNAL(timeout()),this,SLOT(UDP_get()));
 
-        vac_btn->setText("VAC mode");
+    //        vac_btn->setText("VAC mode");
 
-
-    }
-    else
-    {
-        vac_btn->setText("no VAC mode");
-
-    }
 
 }
 
-
 void MainWindow::oneSend()
 {
-
-
-
     timer.setInterval(1);
     char c;
     // switch(timer_cnt)
@@ -437,22 +508,20 @@ void MainWindow::oneSend()
         port.write(&c,1);
         //    case 0:
 
-        c=VAC_mode;
+        c=MD;
         port.write(&c,1);
 
 
-        //        V1=V1_le->text().toFloat();
-        //        V2=V2_le->text().toFloat();
-
-        if(VAC_mode)
+       if((MD==VAC))
             c=VAC_min_le->text().toInt();
         else
             c=V1_le->text().toInt();
+
         port.write(&c,1);
         timer_cnt++;
         //        break;
         //    case 1:
-        if(VAC_mode)
+        if((MD==VAC))
             c=VAC_max_le->text().toInt();
         else
             c=V2_le->text().toInt();
@@ -548,5 +617,10 @@ void drawingInit(QwtPlot* d_plot, QString title)
 
 MainWindow::~MainWindow()
 {
-
+//    char c='s';
+//    while(1)
+//        port.write(&c,1);
+//    qDebug()<<"destructor is here";
+//    MD=CUSTOM;
+//    oneSend();
 }

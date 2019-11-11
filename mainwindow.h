@@ -11,11 +11,17 @@ public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+
+
+
 private slots:
     void oneSend();
     void COMInit();
     void UDP_get();
     void vac_btn_pressed();
+    void prog_btn_pressed();
+    void custom_btn_pressed();
+//    void vac_btn_pressed();
 };
 
 #endif // MAINWINDOW_H

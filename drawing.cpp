@@ -62,9 +62,10 @@ void myCurve::set_Drawing(vector<float>& x, vector<float>& y, int i1, int i2 )
     // Добавить точки на ранее созданную кривую
     QPolygonF points;
 
-    for(int i=0;i<(x.size());i++)
+    int s=x.size();
+    for(int i=0;i<(s);i++)
         if((i!=i1)&&(i!=i2))
-            points<<QPointF(x[i],y[i]);
+            points<<QPointF(x[(i+i1+s)%s],y[(i+i1+s)%s]);
 
     setSamples( points ); // ассоциировать набор точек с кривой
     attach( d_plot); // отобразить кривую на графике
