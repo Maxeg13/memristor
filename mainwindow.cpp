@@ -12,9 +12,17 @@
 using namespace std;
 QPushButton *vac_btn, *filler_btn, *filler_btn1;
 
+enum MODE
+{
+    CUSTOM,
+    VAC,
+    PROGRAM
+};
+
+MODE MD;
 
 int ind_p;
-int VAC_buf=200;
+int VAC_buf=300;//400
 int bufShowSize=1000;
 QwtPlot *d_plot, *set_plot;
 myCurve* curveADC;
@@ -110,7 +118,7 @@ MainWindow::MainWindow(QWidget *parent)
     set_plot->setAxisScale(1,-128,128);
     drawingInit(set_plot,"VA dependence");
     setCurve=new myCurve(set_plot,QString("VAC"), QColor(255,0,0,255));
-    setCurve->setPen(QColor(0,0,0,0));
+    setCurve->setPen(QColor(255,0,0,255));
     QwtSymbol* symbol2 = new QwtSymbol( QwtSymbol::Ellipse,
                                         QBrush(QColor(0,0,0)), QPen( Qt::black, 2 ), QSize( 3, 3 ) );
     setCurve->setSymbol( symbol2 );
@@ -199,7 +207,7 @@ MainWindow::MainWindow(QWidget *parent)
     t2_le=new QLineEdit("12");
     dT_le=new QLineEdit("10");
     T_le=new QLineEdit("60");
-    VAC_min_le=new QLineEdit("-126");
+    VAC_min_le=new QLineEdit("126");
     VAC_max_le=new QLineEdit("126");
 
     serial_le->setMaximumWidth(200);
@@ -218,6 +226,7 @@ MainWindow::MainWindow(QWidget *parent)
     auto* central = new QWidget;
     auto* lt=new QGridLayout;
     lt->addWidget(label,0,0,9,1);
+    label->setMaximumWidth(500);
     lt->addWidget(port_label,0,1);
     lt->addWidget(serial_le,0,2);
 
@@ -238,7 +247,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     lt->addWidget(T_label,6,1);
     lt->addWidget(T_le,6,2);
-//    lt->addWidget(T_le,6,2);
+    //    lt->addWidget(T_le,6,2);
 
     lt->addWidget(VAC_min_label,7,1);
     lt->addWidget(VAC_min_le,7,2);
@@ -253,7 +262,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     lt->addWidget(d_plot,10,0,1,3);
     lt->addWidget(set_plot,11,0,1,3);
-    set_plot->setMaximumWidth(500);
+    //    set_plot->setMaximumWidth(500);
 
 
     central->setLayout(lt);
@@ -304,6 +313,7 @@ void MainWindow::UDP_get()
 
     static uint8_t ptr=0;
     uint8_t buf1;
+    uint16_t h;
     int a,b;
     int N=port.read(buf,buf_N);
     for(int i=0;i<N;i++)
@@ -343,20 +353,33 @@ void MainWindow::UDP_get()
                     ptr%=3;
                 }
                 break;
+                //            case 1:
+                //                h=((uint16_t)(uint8_t)buf[i]);
+
+                //                break;
             case 1:
-                current[current_ind]=(uint8_t)buf[i];
+
+                //                qDebug()<<buf1;
+                //                buf1=(uint8_t)buf[i];
+//                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
+                current[current_ind]=-(uint8_t)buf[i];
                 current_ind++;
                 current_ind%=current.size();
 
 
-
                 break;
+                //            case 2:
+                //                qDebug()<<(uint16_t)buf[i];
+                //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
+                //                current_ind++;
+                //                current_ind%=current.size();
+                //                break;
 
             case 2:
                 //                data_adc[ind_c]=(.01+(uint8_t)buf[i]);
                 ind_c=(ind_c+1)%data_adc.size();
                 //                curveADC->signalDrawing(1);
-                voltage[voltage_ind]=-(int8_t)buf[i];
+                voltage[voltage_ind]=(int8_t)buf[i];
                 voltage_ind++;
                 voltage_ind%=voltage.size();
                 setCurve->set_Drawing(voltage,current,voltage_ind,current_ind);
@@ -370,7 +393,7 @@ void MainWindow::UDP_get()
 
         }
     }
-//        qDebug()<<current_ind<<voltage_ind;
+    //        qDebug()<<current_ind<<voltage_ind;
     //    qDebug()<<N;
 
 }
@@ -418,8 +441,8 @@ void MainWindow::oneSend()
         port.write(&c,1);
 
 
-        V1=V1_le->text().toFloat();
-//        V2=V2_le->text().toFloat();
+        //        V1=V1_le->text().toFloat();
+        //        V2=V2_le->text().toFloat();
 
         if(VAC_mode)
             c=VAC_min_le->text().toInt();
@@ -433,7 +456,7 @@ void MainWindow::oneSend()
             c=VAC_max_le->text().toInt();
         else
             c=V2_le->text().toInt();
-        qDebug()<<VAC_max_le->text().toInt();
+        //        qDebug()<<VAC_max_le->text().toInt();
         port.write(&c,1);
         timer_cnt++;
         //        break;

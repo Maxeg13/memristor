@@ -37,7 +37,7 @@ void myCurve::signalDrawing(float k)
     // Добавить точки на ранее созданную кривую
     QPolygonF points;
 
-    for (int i=0;i<data.size();i++)
+    for (int i=1;i<data.size();i++)
     {
         points<<QPointF(i,data[(ind_c+i+1)%data.size()]*k);
     }

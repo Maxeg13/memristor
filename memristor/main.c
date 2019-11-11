@@ -237,11 +237,25 @@ ISR(TIMER2_OVF_vect)
 				ADCSRA |= (1 << ADSC); 
 				break;
 				case 1:
+				_adc=((ADCL>>2)|(ADCH <<6));
 				UDR0=_adc;
 				break;
 				case 2:
 				UDR0=VAC16>>4;	
-				_adc=((ADCL>>2)|(ADCH <<6));				
+				
+				
+				VAC16+=16;
+				if(VAC16>y16)//just positive
+				{
+					//VAC16=x16|0xFC00;
+					VAC16=-x16;
+					//VAC16=-VAC16;
+				}
+					
+				setDAC(VAC16);			
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+				
 			}
 			
 //old version of _adc transfer			
@@ -251,22 +265,10 @@ ISR(TIMER2_OVF_vect)
 			
 			
 			
-			setDAC(VAC16);
-			//UDR0=_adc;
+
 			
 			
-			
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			
-			
-			VAC16+=16;
-			if(VAC16>y16)//just positive
-			{
-				//VAC16=x16|0xFC00;
-				VAC16=-x16;
-				//VAC16=-VAC16;
-			}
+
 				//VAC16=-y16;//just positive
 			
 			
