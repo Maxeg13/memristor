@@ -17,7 +17,7 @@ public:
 private slots:
     void oneSend();
     void COMInit();
-    void UDP_get();
+    void Serial_get();
     void vac_btn_pressed();
     void prog_btn_pressed();
     void custom_btn_pressed();

@@ -293,14 +293,12 @@ ISR(TIMER2_OVF_vect)
 					}
 				}	
 				
-				
 				setDAC(VAC16);	
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 				
 			}
 						
-			
 			
 			UDP_cnt++;
 			UDP_cnt%=3;
@@ -311,59 +309,60 @@ ISR(TIMER2_OVF_vect)
 		{
 			static uint16_t adc_h;
 			//static int8_t mul=1;
-			if(event_ctr==(1))//ADC!!!
+			if(event_ctr==(2))//ADC!!!
 			{	
 			UDR0=PROGRAM_done;
 			//ADC_on=1;	
 			adc_h=((255-_adc)<<4);	
 			_adc=((ADCL>>2)|(ADCH <<6));
-				if((adc_h<(x16+(2<<4)))&&(adc_h>(x16-(2<<4))))
+				if((adc_h<(t1+(2<<4)))&&(adc_h>(t1-(2<<4))))
 				{
 					PROGRAM_done=1;
 					prog_val=0;
 				}
 			//ADMUX|=(1<<MUX0);
-			
 			}
 
 			
 			if(event_ctr==0)
 			{
 				UDR0=255;
+				//prog_val+=16;
+				
+				//if(prog_val>(x16))
+				//	prog_val=0;
+				
 				prog_val-=16;
-				if(prog_val==-2032)
-					prog_val=2016;
+				
+				if(prog_val==(-x16-16))
+					prog_val=(t2<<4);
 				else
 				if(prog_val<0)
-					prog_val=-2016;
+					prog_val=-x16;
 				
 				if(PROGRAM_done)
 					prog_val=0;
-			setDAC(prog_val);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			}
-			
-			else if(event_ctr==t1)
-			{
-			//if ( ( UCSR0A & (1<<UDRE0)) )		
-			//UDR0=ADCL;	
 				
+				setDAC(prog_val);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}			
+			else if(event_ctr==5)//t1
+			{
 			setDAC(0);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 			}
-			else if(event_ctr==dT)
+			else if(event_ctr==10)//dT
 			{		
 			setDAC(y16);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
-		
 			}
-			else if(event_ctr==(dT+1))
+			else if(event_ctr==(10+1))
 				ADCSRA |= (1 << ADSC); 
 
-			else if(event_ctr==dTt2)
+			else if(event_ctr==15)//
 			{
 			//if ( ( UCSR0A & (1<<UDRE0)) )			
 				UDR0=_adc;	
@@ -388,7 +387,7 @@ ISR(TIMER2_OVF_vect)
 		ctr=0;
 		event_ctr++;
 		//ADC_cnt++;
-		if(event_ctr>T)
+		if(event_ctr>20)
 			event_ctr=0;
 	}
 	ctr++;
@@ -421,7 +420,7 @@ ISR(USART_RX_vect)
 		{
 			//PROGRAM_start=1;
 			PROGRAM_done=0;
-			prog_val=-3;
+			prog_val=0;
 		}
 		break;
 		case 2:

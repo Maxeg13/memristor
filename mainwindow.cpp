@@ -21,6 +21,7 @@ enum MODE
 
 MODE MD;
 
+int adc_shift=120;
 int ind_p;
 int VAC_buf=530;//400
 int bufShowSize=1000;
@@ -37,6 +38,9 @@ QLineEdit* dT_le;
 QLineEdit* T_le;
 QLineEdit* VAC_min_le;
 QLineEdit* VAC_max_le;
+QLabel* t1_label;
+QLabel* t2_label;
+//QLabel* t2_label;
 uint8_t PROGRAM_done=0;
 float V1;
 
@@ -153,7 +157,7 @@ MainWindow::MainWindow(QWidget *parent)
     drawingInit(d_plot,QString("current"));
 
     //y axis
-    d_plot->setAxisScale(QwtPlot::yLeft,0,256);
+    d_plot->setAxisScale(QwtPlot::yLeft,-128,128);
     d_plot->setAxisScale(QwtPlot::xBottom,0,bufShowSize);
     curveADC=new myCurve(bufShowSize,data_adc,d_plot,"EMG",Qt::black,Qt::black,ind_c);
 
@@ -176,9 +180,9 @@ MainWindow::MainWindow(QWidget *parent)
     QLabel* V2_label=new QLabel("V2");
     V2_label->setMaximumWidth(labels_width);
 
-    QLabel* t1_label=new QLabel("tau1");
+    t1_label=new QLabel("tau1");
     t1_label->setMaximumWidth(labels_width);
-    QLabel* t2_label=new QLabel("tau2");
+    t2_label=new QLabel("tau2");
     t2_label->setMaximumWidth(labels_width);
 
     QLabel* dT_label=new QLabel("dT");
@@ -289,7 +293,7 @@ MainWindow::MainWindow(QWidget *parent)
     timer.setInterval(1);
 //prog_btn->set
 
-    connect(&timer, SIGNAL(timeout()),this,SLOT(UDP_get()));
+    connect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
 }
 
 
@@ -319,7 +323,7 @@ void MainWindow::COMInit()
     timer.start();
 }
 
-void MainWindow::UDP_get()
+void MainWindow::Serial_get()
 {
 
     static uint8_t ptr=0;
@@ -341,7 +345,7 @@ void MainWindow::UDP_get()
             //qDebug()<<b;
             //qDebug()<<'\n';
 
-            data_adc[ind_c]=256-(.01+(uint8_t)buf[i]);
+            data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
             //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
             curveADC->signalDrawing(1);
 
@@ -373,7 +377,7 @@ void MainWindow::UDP_get()
                 //                qDebug()<<buf1;
                 //                buf1=(uint8_t)buf[i];
                 //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
-                current[current_ind]=-(uint8_t)buf[i];
+                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
                 current_ind++;
                 current_ind%=current.size();
 
@@ -438,7 +442,7 @@ void MainWindow::UDP_get()
                 //qDebug()<<b;
                 //qDebug()<<'\n';
 
-                data_adc[ind_c]=256-(.01+(uint8_t)buf[i]);
+                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 curveADC->signalDrawing(1);
 
@@ -457,17 +461,20 @@ void MainWindow::custom_btn_pressed()
 {
 //    for (auto& it:data_adc)
 //        it=0;
-    disconnect(&timer, SIGNAL(timeout()),this,SLOT(UDP_get()));
+    disconnect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     V1_label->setText("V1");
+    t1_label->setText("tau1");
+    t2_label->setText("tau2");
     MD=CUSTOM;
     oneSend();
-    connect(&timer, SIGNAL(timeout()),this,SLOT(UDP_get()));
+    connect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
 }
 
 void MainWindow::prog_btn_pressed()
 {
     MD=PROGRAM;
-    V1_label->setText("targ");
+    t1_label->setText("targ");
+    t2_label->setText("V+ max");
     oneSend();
     data_adc.resize(data_adc.size(),0);
     for (auto& it:data_adc)
@@ -476,12 +483,17 @@ void MainWindow::prog_btn_pressed()
 
 void MainWindow::vac_btn_pressed()
 {
+    t1_label->setText("tau1");
+    t2_label->setText("tau2");
     for(auto& it:current)
         it=0;
+    current_ind=0;
+
     for(auto& it:voltage)
         it=0;
+    voltage_ind=0;
 
-    disconnect(&timer, SIGNAL(timeout()),this,SLOT(UDP_get()));
+    disconnect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     MD=VAC;
 
     V1_label->setText("V1");
@@ -491,7 +503,7 @@ void MainWindow::vac_btn_pressed()
         it=0;
 
     curveADC->signalDrawing(1);
-    connect(&timer, SIGNAL(timeout()),this,SLOT(UDP_get()));
+    connect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
 
     //        vac_btn->setText("VAC mode");
 
@@ -514,8 +526,10 @@ void MainWindow::oneSend()
 
        if((MD==VAC))
             c=VAC_min_le->text().toInt();
-        else
+        else if(MD==CUSTOM)
             c=V1_le->text().toInt();
+       else if(MD==PROGRAM)
+           c=(V1_le->text().toInt());
 
         port.write(&c,1);
         timer_cnt++;
@@ -530,7 +544,10 @@ void MainWindow::oneSend()
         timer_cnt++;
         //        break;
         //    case 2:
-        c=t1_le->text().toInt();
+        if(MD!=PROGRAM)
+            c=t1_le->text().toInt();
+        else
+            c=t1_le->text().toInt()+128;//target
         port.write(&c,1);
         timer_cnt++;
         //        break;
