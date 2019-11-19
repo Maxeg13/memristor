@@ -10,7 +10,7 @@
 #include <QPalette>
 #include "drawing.h"
 using namespace std;
-QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1;
+QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1, *rest_btn;
 
 enum MODE
 {
@@ -23,7 +23,7 @@ MODE MD;
 
 int adc_shift=120;
 int ind_p;
-int VAC_buf=530;//400
+int VAC_buf=300;//400
 int bufShowSize=1000;
 QwtPlot *d_plot, *set_plot;
 myCurve* curveADC;
@@ -89,7 +89,7 @@ int voltage_ind;
 const int buf_N=30;
 char buf[buf_N];
 QTimer timer;
-int timer_cnt;
+//int ;
 QString qstr;
 QSerialPort port;
 int serial_inited;
@@ -113,9 +113,14 @@ MainWindow::MainWindow(QWidget *parent)
     //    vector<float> vv=vector<float>(2);
     //    vv[3]=3;
     //    qDebug()<<vv.size();
+
+    rest_btn= new QPushButton("take a rest");
     prog_btn=new QPushButton("PROGRAM MODE");
     custom_btn=new QPushButton("CUSTOM MODE");
     vac_btn=new QPushButton("VAC MODE");
+
+
+    connect(rest_btn,SIGNAL(pressed()),this,SLOT(rest_btn_pressed()));
     connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
     connect(custom_btn,SIGNAL(pressed()),this,SLOT(custom_btn_pressed()));
     //    connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
@@ -157,7 +162,7 @@ MainWindow::MainWindow(QWidget *parent)
     drawingInit(d_plot,QString("current"));
 
     //y axis
-    d_plot->setAxisScale(QwtPlot::yLeft,-128,128);
+    d_plot->setAxisScale(QwtPlot::yLeft,-512,512);
     d_plot->setAxisScale(QwtPlot::xBottom,0,bufShowSize);
     curveADC=new myCurve(bufShowSize,data_adc,d_plot,"EMG",Qt::black,Qt::black,ind_c);
 
@@ -268,6 +273,8 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(custom_btn,9,0);
     lt->addWidget(vac_btn,9,1);
     lt->addWidget(prog_btn,9,2,1,2);
+    lt->addWidget(rest_btn,9,4);
+
     //    lt->addWidget(filler_btn,9,1,1,2);
     //    lt->addWidget(filler_btn1,7,2);
 
@@ -280,6 +287,8 @@ MainWindow::MainWindow(QWidget *parent)
     central->setLayout(lt);
     setCentralWidget(central);
 
+
+
     connect(V1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(V2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(t1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
@@ -291,7 +300,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     timer.setInterval(1);
-//prog_btn->set
+    //prog_btn->set
 
     connect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
 }
@@ -327,31 +336,36 @@ void MainWindow::Serial_get()
 {
 
     static uint8_t ptr=0;
-    uint8_t buf1;
+    static uint8_t buf1;
     uint16_t h;
     int a,b;
     int N=port.read(buf,buf_N);
     for(int i=0;i<N;i++)
     {
+//        qDebug()<<(uint8_t)buf[i];
         if(MD==CUSTOM)
         {
-            //    (uint8_t)buf[i];
-            ind_c=(ind_c+1)%data_adc.size();
-            //    ind_p=ind_c;
-            //a=buf[i];
-            //b=buf1;
-            //            data_adc[ind_c]=((a<<8)+(b));//for -50  25500
-            //qDebug()<<a;
-            //qDebug()<<b;
-            //qDebug()<<'\n';
 
-            data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
-            //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-            curveADC->signalDrawing(1);
+            switch(ptr)
+            {
+            case 0:
+                if((uint8_t)buf[i]!=255)
+                    ptr=2;
+                break;
+            case 1:
+                buf1=buf[i];
+            break;
+            case 2:
 
+                ind_c=(ind_c+1)%data_adc.size();
+                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
+                curveADC->signalDrawing(1);
+                break;
 
-            //        buf1=buf[i];
-
+            }
+            ptr++;
+            ptr%=3;
 
         }
         else if(MD==VAC)//VAC
@@ -364,9 +378,10 @@ void MainWindow::Serial_get()
                 if((uint8_t)buf[i]!=255)
                 {
                     //                    qDebug()<<"hello";
-                    ptr=2;
-                    ptr%=3;
+                    ptr=3;
+                    ptr%=4;
                 }
+//                qDebug()<<"\nc:";
                 break;
                 //            case 1:
                 //                h=((uint16_t)(uint8_t)buf[i]);
@@ -375,22 +390,26 @@ void MainWindow::Serial_get()
             case 1:
 
                 //                qDebug()<<buf1;
-                //                buf1=(uint8_t)buf[i];
+                                buf1=(uint8_t)buf[i];
                 //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
-                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
-                current_ind++;
-                current_ind%=current.size();
+//                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
+//                current_ind++;
+//                current_ind%=current.size();
 
 
                 break;
-                //            case 2:
-                //                qDebug()<<(uint16_t)buf[i];
-                //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
-                //                current_ind++;
-                //                current_ind%=current.size();
-                //                break;
+                            case 2:
+//                //                qDebug()<<(uint16_t)buf[i];
+                                current[current_ind]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+//                current[current_ind]=(((((uint8_t)buf1))|0  ));
+                                current_ind++;
+                                current_ind%=current.size();
+                                break;
 
-            case 2:
+//            DUMMY
+//            case 2:
+//                break;
+            case 3:
                 //                data_adc[ind_c]=(.01+(uint8_t)buf[i]);
                 ind_c=(ind_c+1)%data_adc.size();
                 //                curveADC->signalDrawing(1);
@@ -403,7 +422,7 @@ void MainWindow::Serial_get()
 
             }
             ptr++;
-            ptr%=3;
+            ptr%=4;
 
 
         }
@@ -415,8 +434,8 @@ void MainWindow::Serial_get()
                 if((uint8_t)buf[i]!=255)
                 {
                     //                    qDebug()<<"hello";
-                    ptr=1;
-                    ptr%=3;
+                    ptr=3;
+                    ptr%=4;
                 }
                 break;
             case 1:
@@ -426,13 +445,30 @@ void MainWindow::Serial_get()
                 if(PROGRAM_done)
                 {
                     prog_btn->setText("PROGRAM MODE: DONE");
-//                    prog_btn->set
+                    //                    prog_btn->set
                 }
                 else
                     prog_btn->setText("PROGRAM MODE: ...");
                 break;
             case 2:
                 //    (uint8_t)buf[i];
+                buf1=buf[i];
+//                ind_c=(ind_c+1)%data_adc.size();
+                //    ind_p=ind_c;
+                //a=buf[i];
+                //b=buf1;
+                //            data_adc[ind_c]=((a<<8)+(b));//for -50  25500
+                //qDebug()<<a;
+                //qDebug()<<b;
+                //qDebug()<<'\n';
+
+//                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
+                //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
+//                curveADC->signalDrawing(1);
+
+                //        buf1=buf[i];
+                break;
+            case 3:
                 ind_c=(ind_c+1)%data_adc.size();
                 //    ind_p=ind_c;
                 //a=buf[i];
@@ -442,14 +478,17 @@ void MainWindow::Serial_get()
                 //qDebug()<<b;
                 //qDebug()<<'\n';
 
-                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
+//                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
+                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                if(!PROGRAM_done)
+                 qDebug()<<data_adc[ind_c];
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 curveADC->signalDrawing(1);
+                break;
 
-                          //        buf1=buf[i];
             }
             ptr++;
-            ptr%=3;
+            ptr%=4;
         }
     }
     //        qDebug()<<current_ind<<voltage_ind;
@@ -459,8 +498,8 @@ void MainWindow::Serial_get()
 
 void MainWindow::custom_btn_pressed()
 {
-//    for (auto& it:data_adc)
-//        it=0;
+    //    for (auto& it:data_adc)
+    //        it=0;
     disconnect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     V1_label->setText("V1");
     t1_label->setText("tau1");
@@ -480,9 +519,37 @@ void MainWindow::prog_btn_pressed()
     for (auto& it:data_adc)
         it=0;
 }
+void MainWindow::rest_btn_pressed()
+{
+    char c;
+    c=255;
+    port.write(&c,1);
+    //    case 0:
+
+    c=0;
+    port.write(&c,1);
+
+
+
+    c=0;
+    port.write(&c,1);
+    port.write(&c,1);
+    c=t1_le->text().toInt();
+    port.write(&c,1);
+
+    c=t2_le->text().toInt();
+    port.write(&c,1);
+
+    c=dT_le->text().toInt();
+    port.write(&c,1);
+
+    c=T_le->text().toInt();
+    port.write(&c,1);
+}
 
 void MainWindow::vac_btn_pressed()
 {
+    disconnect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     t1_label->setText("tau1");
     t2_label->setText("tau2");
     for(auto& it:current)
@@ -493,17 +560,20 @@ void MainWindow::vac_btn_pressed()
         it=0;
     voltage_ind=0;
 
-    disconnect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+
     MD=VAC;
 
     V1_label->setText("V1");
+    connect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+
+
     oneSend();
     data_adc.resize(data_adc.size(),0);
     for (auto& it:data_adc)
         it=0;
 
     curveADC->signalDrawing(1);
-    connect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+
 
     //        vac_btn->setText("VAC mode");
 
@@ -514,7 +584,7 @@ void MainWindow::oneSend()
 {
     timer.setInterval(1);
     char c;
-    // switch(timer_cnt)
+    // switch()
     {
         c=255;
         port.write(&c,1);
@@ -524,15 +594,15 @@ void MainWindow::oneSend()
         port.write(&c,1);
 
 
-       if((MD==VAC))
+        if((MD==VAC))
             c=VAC_min_le->text().toInt();
         else if(MD==CUSTOM)
             c=V1_le->text().toInt();
-       else if(MD==PROGRAM)
-           c=(V1_le->text().toInt());
+        else if(MD==PROGRAM)
+            c=(V1_le->text().toInt());
 
         port.write(&c,1);
-        timer_cnt++;
+        //        ++;
         //        break;
         //    case 1:
         if((MD==VAC))
@@ -541,20 +611,20 @@ void MainWindow::oneSend()
             c=V2_le->text().toInt();
         //        qDebug()<<VAC_max_le->text().toInt();
         port.write(&c,1);
-        timer_cnt++;
+        //        ++;
         //        break;
         //    case 2:
         if(MD!=PROGRAM)
             c=t1_le->text().toInt();
         else
-            c=t1_le->text().toInt()+128;//target
+            c=t1_le->text().toInt();//target
         port.write(&c,1);
-        timer_cnt++;
+        //        ++;
         //        break;
         //    case 3:
         c=t2_le->text().toInt();
         port.write(&c,1);
-        //        timer_cnt++;
+        //        ++;
         //        break;
         //    case 4:
         c=dT_le->text().toInt();
@@ -562,7 +632,7 @@ void MainWindow::oneSend()
 
         c=T_le->text().toInt();
         port.write(&c,1);
-        //        timer_cnt=0;
+        //        =0;
         //        timer.stop();
         //        break;
 
@@ -634,10 +704,10 @@ void drawingInit(QwtPlot* d_plot, QString title)
 
 MainWindow::~MainWindow()
 {
-//    char c='s';
-//    while(1)
-//        port.write(&c,1);
-//    qDebug()<<"destructor is here";
-//    MD=CUSTOM;
-//    oneSend();
+    //    char c='s';
+    //    while(1)
+    //        port.write(&c,1);
+    //    qDebug()<<"destructor is here";
+    //    MD=CUSTOM;
+    //    oneSend();
 }

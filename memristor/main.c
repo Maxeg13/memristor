@@ -1,75 +1,57 @@
-#define F_CPU 16000000UL
-
-#include <avr/io.h>
+#include<util/delay.h>
+#include<avr/io.h>
 #include <avr/interrupt.h>
-
-#include <util/delay.h>
-
-#define MIG 300
-
+#include <math.h>
+#include <avr/iom2560.h>
+#include <avr/iomxx0_1.h>//atmega2560 and so on
 
 
-#define LDAC PD2
-#define SYNC PD3
-
-#define DDR_SPI DDRB
-#define DD_MISO PB4
-#define DD_MOSI PB3
-#define DD_SCK PB5
-#define SPI_SS PB2
-
-#define BAUD 9600                                   // define baud
+#define PORTS_N 6
+#define byte uint8_t
+#define BAUD 38400                                   // define baud
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
-
-
-
-typedef enum
-{
-	CUSTOM,
-	VAC,
-	PROGRAM
-} MODE;
-
-MODE MD=CUSTOM;
-//MODE MD=CUSTOM;
-//#define DD_SS PB0
-int16_t VAC16=0, VAC16_H=0, VAC16_HH=0;
-int16_t prog_val=0;
-int16_t x16=0;
-int16_t y16=0;
-uint8_t sync=0;
-uint8_t t1=2;
-uint8_t t2=2;
-uint8_t dTt2=10;
-uint8_t dT;
-uint8_t T;
-uint8_t pos_phase=1;
-uint8_t send8;
-uint8_t ptr=0, UDP_cnt;
-uint8_t PROGRAM_done=0;
 char c;
-uint8_t ADC_on;
-//uint8_t VAC_mode=0;
-uint8_t _adc;
-int ctr;
+//int
 
-uint16_t accum;
-int event_ctr;
-int time_step=6;//3
-int eventN=100;
-int ADC_cnt;
-uint8_t ADCH_, ADCL_;
-uint8_t accum_cnt;
+byte pwm=20, pwm_h;
+int rec;
+int i;
+float s=0;
+byte cnt_N=40;
+int cnt=0;
+byte state_med[PORTS_N],state[PORTS_N],state_PWM;
+byte state_rec[8];
+byte key1='a', key2='c';
+byte  port_ind=0;
+int ptr=0;
 
-/* Функция инициализация АЦП */
-void ADC_Init(){
- ADCSRA |= (1 << ADEN) // Включаем АЦП
- //ADCSRA&=~(1 << ADPS1)|(1 << ADPS0)|(1 << ADPS1);
- |(1 << ADPS1)|(1 << ADPS0)|(1 << ADPS1);    // устанавливаем предделитель преобразователя на 8
- ADMUX |= (0 << REFS1)|(1 << REFS0) //выставляем опорное напряжение, как внешний ИОН
- |(0 << MUX0)|(0 << MUX1)|(0 << MUX2)|(0 << MUX3); // снимать сигнал будем с  входа PC0 
+void portIncrement()
+{
+    ptr++;
+    if(ptr==8)
+    {
+        ptr=0;
+        port_ind++;
+        if(port_ind==PORTS_N)
+            port_ind-=1;
+    }
 }
 
+void uart_init (unsigned int ubrr)
+{
+    //    UCSR0A=0x00;
+
+    /*Set baud rate */
+    UBRR0H = (unsigned char)(ubrr>>8);
+    UBRR0L = (unsigned char)ubrr;
+
+
+
+    UCSR0A|=(1<<UDRE0);
+    UCSR0B = (1<<RXCIE1)|(1<<RXEN1)|(1<<TXEN1);
+    /* Set frame format: 8data, 2stop bit */
+    UCSR0C = (1<<USBS1)|(3<<UCSZ10);//UCSR1C = (1<<USBS1)|(3<<UCSZ10);
+}
 
 void timer_init()
 {
@@ -79,93 +61,36 @@ void timer_init()
     TCCR2B |= (1<<CS21) ;
     // enable Timer1 overflow interrupt:
     TIMSK2 = (1 << TOIE2);
-}
 
-void uart_init(unsigned int ubrr)
-{
-	
-	UBRR0H = (unsigned char)(ubrr>>8);
-	UBRR0L = (unsigned char)ubrr;
-	/*Enable receiver and transmitter */
-	UCSR0B = (1<<RXCIE0)|(1<<RXEN0)|(1<<TXEN0);
-	/* Set frame format: 8data, 2stop bit */
-	UCSR0C = (1<<USBS0)|(3<<UCSZ00);
-}
-
-void SPI_MasterInit()
-{
-/* Set MOSI and SCK output, all others input */
-	DDR_SPI = (1<<DD_MOSI)|(1<<DD_SCK)|(1<<SPI_SS);
-/* Enable SPI, Master, set clock rate fck/16 */
-	SPCR = (1<<SPE)|(0<<DORD)|(1<<MSTR)|(1<<CPOL)|(0<<CPHA)|(1<<SPR1)|(0<<SPR0);
-	//SPSR = (0<<SPI2X);
-}
-//(1<<RXCIE0)|
-void setDAC(int16_t x)//_____________bipolar!!! and <<4 larger
-{
-	x=-x;
-	x+=2048;
-	PORTD&=~(1<<SYNC);
-	//_delay_us(30);  
-	send8 = (x >> 8);
-	send8 &= 0b00001111;
-	SPI_WriteByte(send8);
-	send8=x;
-	//send8&=0b11111111;
-	SPI_WriteByte(send8);		
-	PORTD|=(1<<SYNC);
-
-}
-
-
-void SPI_WriteByte(uint8_t data)
-{
-   //PORTB &= ~(1<<SPI_SS);
-   SPDR = data;
-  while(!(SPSR & (1<<SPIF)));
-   //PORTB |= (1<<SPI_SS); 
 }
 
 void main(void)
 {
-	sei();
-	SPI_MasterInit();
-	timer_init();
-    DDRD = 0b000001100;	
-	uart_init(BAUDRATE);
-	ADC_Init();
-	
-			ADCSRA |= (1 << ADSC); 
-	ADCL;
-	ADCL;
-	
-    while(1)
+
+    uart_init(BAUDRATE);
+    timer_init();
+    sei();
+
+
+    //    _SFR_MEM8(0x104)=0xFF;
+    DDRA=0xFF;
+    DDRC=0xFF;
+    DDRD=0xFF;
+    DDRL=0xFF;
+    DDRH=0xFF;
+    DDRK=0xFF;
+            //        DDRH=0xFF;
+    //    PORTB=0xFF;
+
+    for(;;)
     {
-		
-		//x16+=1;	
-/*		
-		setDAC(x16);
-		PORTD&=~(1<<LDAC);
-		PORTD|=(1<<LDAC);
-		
-		_delay_ms(t1);
-		
-		setDAC(0);
-				PORTD&=~(1<<LDAC);
-		PORTD|=(1<<LDAC);
-		
-		_delay_ms(T);
-		
-				setDAC(y16);				
-		PORTD&=~(1<<LDAC);
-		PORTD|=(1<<LDAC);
-		
-		_delay_ms(t2);
-		setDAC(0);
-		PORTD&=~(1<<LDAC);
-		PORTD|=(1<<LDAC);
-		_delay_ms(50);
-*/
+
+        //        PORTL=0xFF;
+        //        _delay_ms(1000);
+        //        while ((UCSR0A & (1<<UDRE0)));
+        //        UCSR0A &=~ (1<<RXC0);
+        //        PORTH=~PORTH;
+
 
     }
 
@@ -173,277 +98,76 @@ void main(void)
 
 ISR(TIMER2_OVF_vect)
 {
-	if(ctr>time_step)
-	{
-		if(MD==CUSTOM)
-		{
-			//if(ADC_cnt==30)
-			//{
 
-			//	ADC_cnt=0;
-			//}
-			//x16++;
-			if(event_ctr==(1))//ADC!!!
-			{	
-			ADC_on=1;			
-			_adc=((ADCL>>2)|(ADCH <<6));
-			//ADMUX|=(1<<MUX0);
-			
-			}
-			//else if(ADC_on)
-			//{
-			//	accum_cnt++;
-			//	accum+=_adc;
-			//}
-			
-			
-			
-			if(event_ctr==0)
-			{
-				
-			setDAC(x16);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			}
-			
-			else if(event_ctr==t1)
-			{
-			//if ( ( UCSR0A & (1<<UDRE0)) )		
-			//UDR0=ADCL;	
-				
-			setDAC(0);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			}
-			else if(event_ctr==dT)
-			{		
-			setDAC(y16);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-		
-			}
-			else if(event_ctr==(dT+1))
-				ADCSRA |= (1 << ADSC); 
-
-			else if(event_ctr==dTt2)
-			{
-			if ( ( UCSR0A & (1<<UDRE0)) )			
-				UDR0=_adc;	
-			//UDR0=(uint8_t)(accum/t2);
-			accum=0;
-			ADC_on=0;
-			accum_cnt=0;
-			//if ( ( UCSR0A & (1<<UDRE0)) )		
-			//UDR0=ADCH;	
-			//ADCSRA |= (1 << ADSC); 			
-			setDAC(0);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			//ADMUX&=~(1<<MUX0);
-
-			}		
-
-		}
-		else if(MD==VAC)//VAC_mode
-		{			
-			static int i=0;
-			i++;						
-			
-			switch(UDP_cnt)
-			{
-				case 0:
-					ADCSRA |= (1 << ADSC); 
-				 //important  ADC - DAC delay
-				UDR0=255;
-				break;
-				
-				
-				
-				case 1:		
-				_adc=(ADCL>>2)|(ADCH<<6);//old
-				UDR0=_adc;
-				break;
-				
-				//case 2:
-				//UDR0=ADCH;
-				//break;
-				
-				
-				case 2:
-				UDR0=VAC16>>4;				
-				//VAC16_HH=VAC16_H;
-				//VAC16_H=VAC16;
-				
-				if(pos_phase)
-				{
-					VAC16+=16;//16
-					if(VAC16>y16)//just positive
-					{
-					pos_phase=0;
-					//VAC16=-x16;				
-					}
-				}
-				else
-				{
-					VAC16-=16;
-					if(VAC16<-x16)//just positive
-					{
-					pos_phase=1;
-					//VAC16=-x16;				
-					}
-				}	
-				
-				setDAC(VAC16);	
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
-				
-			}
-						
-			
-			UDP_cnt++;
-			UDP_cnt%=3;
-
-			
-		}
-		else if(MD==PROGRAM)
-		{
-			static uint16_t adc_h;
-			//static int8_t mul=1;
-			if(event_ctr==(2))//ADC!!!
-			{	
-			UDR0=PROGRAM_done;
-			//ADC_on=1;	
-			adc_h=((255-_adc)<<4);	
-			_adc=((ADCL>>2)|(ADCH <<6));
-				if((adc_h<(t1+(2<<4)))&&(adc_h>(t1-(2<<4))))
-				{
-					PROGRAM_done=1;
-					prog_val=0;
-				}
-			//ADMUX|=(1<<MUX0);
-			}
-
-			
-			if(event_ctr==0)
-			{
-				UDR0=255;
-				//prog_val+=16;
-				
-				//if(prog_val>(x16))
-				//	prog_val=0;
-				
-				prog_val-=16;
-				
-				if(prog_val==(-x16-16))
-					prog_val=(t2<<4);
-				else
-				if(prog_val<0)
-					prog_val=-x16;
-				
-				if(PROGRAM_done)
-					prog_val=0;
-				
-				setDAC(prog_val);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
-			}			
-			else if(event_ctr==5)//t1
-			{
-			setDAC(0);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			}
-			else if(event_ctr==10)//dT
-			{		
-			setDAC(y16);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			}
-			else if(event_ctr==(10+1))
-				ADCSRA |= (1 << ADSC); 
-
-			else if(event_ctr==15)//
-			{
-			//if ( ( UCSR0A & (1<<UDRE0)) )			
-				UDR0=_adc;	
-			//UDR0=(uint8_t)(accum/t2);
-			accum=0;
-			ADC_on=0;
-			accum_cnt=0;
-			//if ( ( UCSR0A & (1<<UDRE0)) )		
-			//UDR0=ADCH;	
-			//ADCSRA |= (1 << ADSC); 			
-			setDAC(0);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
-			//ADMUX&=~(1<<MUX0);
-			}
-		}
-		
-		
-		
-		
-		
-		ctr=0;
-		event_ctr++;
-		//ADC_cnt++;
-		if(event_ctr>20)
-			event_ctr=0;
-	}
-	ctr++;
-	
-	
+    s+=0.001;
+    if(cnt==cnt_N)
+    {
+        cnt=0;
+        PORTA=state[0];
+        PORTC=state[1];//?
+        PORTD=state[2];
+        PORTL=state[3];
+        PORTH=state[4];
+        PORTK=state[5];
+        //            PORTL=0xFF;
+    }
+    //        else if(cnt>((1+sin(s))*8+4))/////////
+    else if(cnt>pwm)
+    {
+        PORTA=0;
+        PORTC=0;
+        PORTD=0;
+        PORTL=0;
+        PORTH=0;
+        PORTK=0;
+    }
+    cnt++;
 }
 
-ISR(USART_RX_vect)
+ISR(USART0_RX_vect)
 {
-	switch(ptr)
-	{
-		case 0:
-		if(UDR0!=255)
-		{
-			sync=0;
-			ptr--;
-			ptr%=7;
-		}
-		else
-			sync=1;
-		break;
-		case 1:
-		MD=UDR0;
-		if(MD==VAC)
-			time_step=4;//5
-		else
-			time_step=4;//4
-		
-		if(MD==PROGRAM)
-		{
-			//PROGRAM_start=1;
-			PROGRAM_done=0;
-			prog_val=0;
-		}
-		break;
-		case 2:
-		x16=UDR0<<4;
-		break;
-		case 3:	
-		y16=UDR0<<4;
-		break;
-		case 4:
-		t1=UDR0;
-		break;		
-		case 5:
-		t2=UDR0;
-		break;	
-		case 6:
-		dT=UDR0;
-		break;
-		case 7:
-		T=UDR0;
-		break;
-	}
-	dTt2=dT+t2;
-	//UDR0=x16/16;
-	ptr++;
-	ptr%=8;
+    rec=UDR0;
+    if(ptr!=-1)
+    {
+        if(rec==key1)
+        {
+            ptr=-1;
+            port_ind=0;
+            for(byte i=0;i<PORTS_N;i++)
+                state_med[i]=0x00;
+        }
+        else if(rec=='s')
+        {
+            state_med[port_ind]|=(1<<ptr);
+            portIncrement();
+        }
+        else if(rec=='d')
+        {
+            state_med[port_ind]&=~(1<<ptr);
+            portIncrement();
+        }
+        else if(rec==key2)
+        {
+            for(byte i=0;i<PORTS_N;i++)
+                state[i]=state_med[i];
+            pwm=pwm_h;
+        }
+    }
+    else
+    {
+        pwm_h=rec;
+        portIncrement();
+    }
+
+    //    PORTL=~PORTL;
+    //    c=UDR1;
+    //    while(!(UCSR1A & (1<<UDRE1)));
+    //    UDR1=c;
+    //    UCSR0A;
+
+    //   UDR0=rec;
+    //    for(long h=0;h<100000;h++)
+    //        i++;
+    //    UCSR0A|=(1<<UDRE0);
+
 }
