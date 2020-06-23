@@ -371,6 +371,9 @@ void MainWindow::Serial_get()
         else if(MD==VAC)//VAC
         {
             //             qDebug()<<(uint8_t)buf[i];
+//            set_plot->setAxisAutoScale(2);
+//            set_plot->setAxisAutoScale(1);
+//            set_plot->setAxisAutoScale()
             switch(ptr)
             {
 
