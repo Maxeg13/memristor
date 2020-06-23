@@ -15,6 +15,8 @@ public:
 
 
 private slots:
+    void chanPressed();
+
     void oneSend();
     void COMInit();
     void Serial_get();

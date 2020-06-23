@@ -21,8 +21,11 @@ enum MODE
 
 MODE MD;
 
+int reversed[8]={0,0,0,0,
+                 0,0,0,0};
 int adc_shift=120;
 int ind_p;
+int chan=0;
 int VAC_buf=300;//400
 int bufShowSize=1000;
 QwtPlot *d_plot, *set_plot;
@@ -38,8 +41,11 @@ QLineEdit* dT_le;
 QLineEdit* T_le;
 QLineEdit* VAC_min_le;
 QLineEdit* VAC_max_le;
+QLineEdit* chan_le;
+QLineEdit* reverse_le;
 QLabel* t1_label;
 QLabel* t2_label;
+
 //QLabel* t2_label;
 uint8_t PROGRAM_done=0;
 float V1;
@@ -201,6 +207,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     QLabel* VAC_max_label=new QLabel("VAC_max");
     VAC_max_label->setMaximumWidth(labels_width);
+
+    QLabel* chan_label = new QLabel("cnannel ind");
+    chan_label->setMaximumWidth(labels_width);
+
+    QLabel* reverse_label = new QLabel("is reversed");
+    reverse_label->setMaximumWidth(labels_width);
     //    palette.setBrush(QPalette::Window, QBrush(scaled));
     //    QWidget *w= new QWidget(this);
     //    w->setGeometry(0,0,800,480);
@@ -224,6 +236,8 @@ MainWindow::MainWindow(QWidget *parent)
     T_le=new QLineEdit("20");
     VAC_min_le=new QLineEdit("126");
     VAC_max_le=new QLineEdit("126");
+    chan_le=new QLineEdit("0");
+    reverse_le = new QLineEdit("0");
 
     serial_le->setMaximumWidth(200);
     V1_le->setMaximumWidth(200);
@@ -234,53 +248,71 @@ MainWindow::MainWindow(QWidget *parent)
     T_le->setMaximumWidth(200);
     VAC_min_le->setMaximumWidth(200);
     VAC_max_le->setMaximumWidth(200);
+    reverse_le->setMaximumWidth(200);
+    chan_le->setMaximumWidth(200);
 
     //    COMInit();
     connect(serial_le,SIGNAL(returnPressed()),this,SLOT(COMInit()));
     //    serial_le=new QLineEdit("");
     auto* central = new QWidget;
     auto* lt=new QGridLayout;
-    lt->addWidget(label,0,0,9,3);
+
+
+
+    lt->addWidget(label,0,0,5,4);
     label->setMaximumWidth(430);
-    lt->addWidget(port_label,0,3);
-    lt->addWidget(serial_le,0,4);
 
-    lt->addWidget(V1_label,1,3);
-    lt->addWidget(V1_le,1,4);
 
-    lt->addWidget(V2_label,2,3);
-    lt->addWidget(V2_le,2,4);
 
-    lt->addWidget(t1_label,3,3);
-    lt->addWidget(t1_le,3,4);
+    lt->addWidget(port_label,0,4);
+    lt->addWidget(serial_le,0,5);
 
-    lt->addWidget(t2_label,4,3);
-    lt->addWidget(t2_le,4,4);
+    lt->addWidget(V1_label,1,4);
+    lt->addWidget(V1_le,1,5);
 
-    lt->addWidget(dT_label,5,3);
-    lt->addWidget(dT_le,5,4);
+    lt->addWidget(V2_label,2,4);
+    lt->addWidget(V2_le,2,5);
 
-    lt->addWidget(T_label,6,3);
-    lt->addWidget(T_le,6,4);
-    //    lt->addWidget(T_le,6,2);
+    lt->addWidget(t1_label,3,4);
+    lt->addWidget(t1_le,3,5);
 
-    lt->addWidget(VAC_min_label,7,3);
-    lt->addWidget(VAC_min_le,7,4);
+    lt->addWidget(VAC_max_label,4,4);
+    lt->addWidget(VAC_max_le,4,5);
 
-    lt->addWidget(VAC_max_label,8,3);
-    lt->addWidget(VAC_max_le,8,4);
+    lt->addWidget(reverse_label,5,4);
+    lt->addWidget(reverse_le,5,5);
 
-    lt->addWidget(custom_btn,9,0);
-    lt->addWidget(vac_btn,9,1);
-    lt->addWidget(prog_btn,9,2,1,2);
-    lt->addWidget(rest_btn,9,4);
+
+
+    lt->addWidget(t2_label,0,6);
+    lt->addWidget(t2_le,0,7);
+
+    lt->addWidget(dT_label,1,6);
+    lt->addWidget(dT_le,1,7);
+
+    lt->addWidget(T_label,2,6);
+    lt->addWidget(T_le,2,7);
+
+    lt->addWidget(VAC_min_label,3,6);
+    lt->addWidget(VAC_min_le,3,7);
+
+
+    lt->addWidget(chan_label,4,6);
+    lt->addWidget(chan_le,4,7);
+
+
+    lt->addWidget(custom_btn,5,0,1,2);
+    lt->addWidget(vac_btn,5,2,1,2);
+
+    lt->addWidget(prog_btn,6,0,1,2);
+    lt->addWidget(rest_btn,6,2,1,2);
 
     //    lt->addWidget(filler_btn,9,1,1,2);
     //    lt->addWidget(filler_btn1,7,2);
 
 
-    lt->addWidget(d_plot,10,0,1,5);
-    lt->addWidget(set_plot,11,0,1,5);
+    lt->addWidget(d_plot,7,0,1,4);
+    lt->addWidget(set_plot,7,4,1,4);
     //    set_plot->setMaximumWidth(500);
 
 
@@ -288,7 +320,8 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(central);
 
 
-
+    connect(chan_le,SIGNAL(returnPressed()),this,SLOT(chanPressed()));
+    connect(reverse_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(V1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(V2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(t1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
@@ -532,8 +565,6 @@ void MainWindow::rest_btn_pressed()
     c=0;
     port.write(&c,1);
 
-
-
     c=0;
     port.write(&c,1);
     port.write(&c,1);
@@ -585,6 +616,7 @@ void MainWindow::vac_btn_pressed()
 
 void MainWindow::oneSend()
 {
+//    reverse_le->setText(QString::number(reversed[chan]));
     timer.setInterval(1);
     char c;
     // switch()
@@ -608,7 +640,7 @@ void MainWindow::oneSend()
         //        ++;
         //        break;
         //    case 1:
-        if((MD==VAC))
+        if(MD==VAC)
             c=VAC_max_le->text().toInt();
         else
             c=V2_le->text().toInt();
@@ -638,6 +670,11 @@ void MainWindow::oneSend()
         //        =0;
         //        timer.stop();
         //        break;
+        c=chan;
+        port.write(&c,1);
+
+        c=reversed[chan];
+        port.write(&c,1);
 
     }
 
@@ -713,4 +750,14 @@ MainWindow::~MainWindow()
     //    qDebug()<<"destructor is here";
     //    MD=CUSTOM;
     //    oneSend();
+}
+
+void MainWindow::chanPressed()
+{
+    reversed[chan]=reverse_le->text().toInt();
+
+    chan = chan_le->text().toInt();
+    reverse_le->setText(QString::number(reversed[chan]));
+    oneSend();
+    qDebug()<<"im here";
 }
