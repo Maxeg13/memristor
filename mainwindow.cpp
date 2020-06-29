@@ -94,7 +94,7 @@ vector<float> voltage;
 int voltage_ind;
 const int buf_N=30;
 char buf[buf_N];
-QTimer timer;
+QTimer serial_get_timer;
 //int ;
 QString qstr;
 QSerialPort port;
@@ -141,7 +141,7 @@ MainWindow::MainWindow(QWidget *parent)
     setCurve=new myCurve(set_plot,QString("VAC"), QColor(255,0,0,255));
     setCurve->setPen(QColor(255,0,0,255));
     QwtSymbol* symbol2 = new QwtSymbol( QwtSymbol::Ellipse,
-                                        QBrush(QColor(0,0,0)), QPen( Qt::black, 2 ), QSize( 3, 3 ) );
+                                        QBrush(QColor(0,0,0)), QPen( Qt::black, 2 ), QSize( 2, 2 ) );
     setCurve->setSymbol( symbol2 );
 
     vector<float> xx;
@@ -173,7 +173,7 @@ MainWindow::MainWindow(QWidget *parent)
     curveADC=new myCurve(bufShowSize,data_adc,d_plot,"EMG",Qt::black,Qt::black,ind_c);
 
 
-    QImage image("C:/Users/chibi/Documents/memristor1/Scheme.png");
+    QImage image("C:/Users/123/Documents/memristor1/Scheme.png");
     QImage image2 = image.scaled(250, 200);
 
     //    QPalette palette;
@@ -188,7 +188,7 @@ MainWindow::MainWindow(QWidget *parent)
     port_label->setMaximumWidth(labels_width);
     V1_label=new QLabel("V1");
     V1_label->setMaximumWidth(labels_width);
-    QLabel* V2_label=new QLabel("V2");
+    QLabel* V2_label=new QLabel("V2 (ref)");
     V2_label->setMaximumWidth(labels_width);
 
     t1_label=new QLabel("tau1");
@@ -227,7 +227,7 @@ MainWindow::MainWindow(QWidget *parent)
     //    show();
     setStyleSheet("background-color: white");
 
-    serial_le=new QLineEdit("COM14");
+    serial_le=new QLineEdit("COM3");
     V1_le=new QLineEdit("10");
     V2_le=new QLineEdit("4");
     t1_le=new QLineEdit("6");
@@ -332,10 +332,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(VAC_max_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
 
 
-    timer.setInterval(1);
+    serial_get_timer.setInterval(1);
     //prog_btn->set
 
-    connect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+    connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
 }
 
 
@@ -362,7 +362,7 @@ void MainWindow::COMInit()
 
     serial_le->setDisabled(true);
 
-    timer.start();
+    serial_get_timer.start();
 }
 
 void MainWindow::Serial_get()
@@ -375,7 +375,7 @@ void MainWindow::Serial_get()
     int N=port.read(buf,buf_N);
     for(int i=0;i<N;i++)
     {
-//        qDebug()<<(uint8_t)buf[i];
+        //        qDebug()<<(uint8_t)buf[i];
         if(MD==CUSTOM)
         {
 
@@ -387,11 +387,11 @@ void MainWindow::Serial_get()
                 break;
             case 1:
                 buf1=buf[i];
-            break;
+                break;
             case 2:
 
                 ind_c=(ind_c+1)%data_adc.size();
-                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 curveADC->signalDrawing(1);
                 break;
@@ -403,10 +403,11 @@ void MainWindow::Serial_get()
         }
         else if(MD==VAC)//VAC
         {
+            static int8_t buf_;
             //             qDebug()<<(uint8_t)buf[i];
-//            set_plot->setAxisAutoScale(2);
-//            set_plot->setAxisAutoScale(1);
-//            set_plot->setAxisAutoScale()
+            //            set_plot->setAxisAutoScale(2);
+            //            set_plot->setAxisAutoScale(1);
+            //            set_plot->setAxisAutoScale()
             switch(ptr)
             {
 
@@ -417,7 +418,7 @@ void MainWindow::Serial_get()
                     ptr=3;
                     ptr%=4;
                 }
-//                qDebug()<<"\nc:";
+                //                qDebug()<<"\nc:";
                 break;
                 //            case 1:
                 //                h=((uint16_t)(uint8_t)buf[i]);
@@ -426,30 +427,32 @@ void MainWindow::Serial_get()
             case 1:
 
                 //                qDebug()<<buf1;
-                                buf1=(uint8_t)buf[i];
+                buf1=(uint8_t)buf[i];
                 //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
-//                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
-//                current_ind++;
-//                current_ind%=current.size();
+                //                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
+                //                current_ind++;
+                //                current_ind%=current.size();
 
 
                 break;
-                            case 2:
-//                //                qDebug()<<(uint16_t)buf[i];
-                                current[current_ind]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
-//                current[current_ind]=(((((uint8_t)buf1))|0  ));
-                                current_ind++;
-                                current_ind%=current.size();
-                                break;
+            case 2:
+                //                //                qDebug()<<(uint16_t)buf[i];
+                current[current_ind]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                //                current[current_ind]=(((((uint8_t)buf1))|0  ));
+                current_ind++;
+                current_ind%=current.size();
+                break;
 
-//            DUMMY
-//            case 2:
-//                break;
+                //            DUMMY
+                //            case 2:
+                //                break;
             case 3:
                 //                data_adc[ind_c]=(.01+(uint8_t)buf[i]);
                 ind_c=(ind_c+1)%data_adc.size();
                 //                curveADC->signalDrawing(1);
-                voltage[voltage_ind]=(int8_t)buf[i];
+                voltage[voltage_ind]=buf_;
+                buf_=buf[i];
+
                 voltage_ind++;
                 voltage_ind%=voltage.size();
                 setCurve->set_Drawing(voltage,current,voltage_ind,current_ind);
@@ -489,7 +492,7 @@ void MainWindow::Serial_get()
             case 2:
                 //    (uint8_t)buf[i];
                 buf1=buf[i];
-//                ind_c=(ind_c+1)%data_adc.size();
+                //                ind_c=(ind_c+1)%data_adc.size();
                 //    ind_p=ind_c;
                 //a=buf[i];
                 //b=buf1;
@@ -498,9 +501,9 @@ void MainWindow::Serial_get()
                 //qDebug()<<b;
                 //qDebug()<<'\n';
 
-//                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
+                //                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-//                curveADC->signalDrawing(1);
+                //                curveADC->signalDrawing(1);
 
                 //        buf1=buf[i];
                 break;
@@ -514,10 +517,10 @@ void MainWindow::Serial_get()
                 //qDebug()<<b;
                 //qDebug()<<'\n';
 
-//                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
-                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                //                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
+                data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 if(!PROGRAM_done)
-                 qDebug()<<data_adc[ind_c];
+                    qDebug()<<data_adc[ind_c];
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 curveADC->signalDrawing(1);
                 break;
@@ -536,13 +539,13 @@ void MainWindow::custom_btn_pressed()
 {
     //    for (auto& it:data_adc)
     //        it=0;
-    disconnect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+    disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     V1_label->setText("V1");
     t1_label->setText("tau1");
     t2_label->setText("tau2");
     MD=CUSTOM;
     oneSend();
-    connect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+    connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
 }
 
 void MainWindow::prog_btn_pressed()
@@ -557,17 +560,21 @@ void MainWindow::prog_btn_pressed()
 }
 void MainWindow::rest_btn_pressed()
 {
+    MD=CUSTOM;
+
     char c;
     c=255;
     port.write(&c,1);
     //    case 0:
 
-    c=0;
+    c=CUSTOM;
     port.write(&c,1);
 
     c=0;
     port.write(&c,1);
+
     port.write(&c,1);
+
     c=t1_le->text().toInt();
     port.write(&c,1);
 
@@ -579,11 +586,17 @@ void MainWindow::rest_btn_pressed()
 
     c=T_le->text().toInt();
     port.write(&c,1);
+
+    c=chan;
+    port.write(&c,1);
+
+    c=reverse_le->text().toInt();
+    port.write(&c,1);
 }
 
 void MainWindow::vac_btn_pressed()
 {
-    disconnect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+    disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     t1_label->setText("tau1");
     t2_label->setText("tau2");
     for(auto& it:current)
@@ -598,7 +611,7 @@ void MainWindow::vac_btn_pressed()
     MD=VAC;
 
     V1_label->setText("V1");
-    connect(&timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+    connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
 
 
     oneSend();
@@ -614,69 +627,112 @@ void MainWindow::vac_btn_pressed()
 
 }
 
+void MainWindow::restSend(int chan_)
+{
+//    serial_get_timer.setInterval(1);
+//    char c;
+
+
+//    c=255;
+//    port.write(&c,1);
+//    //    case 0:
+
+//    c=MD;
+//    port.write(&c,1);
+
+
+//    c=0;
+//    port.write(&c,1);
+
+//    c=0;
+//    port.write(&c,1);
+
+//    c=0;
+//    port.write(&c,1);
+
+
+//    c=0;
+//    port.write(&c,1);
+
+
+//    c=0;
+//    port.write(&c,1);
+
+//    c=0;
+//    port.write(&c,1);
+
+
+//    c=chan_;
+//    port.write(&c,1);
+
+//    c=reversed[chan_];
+//    port.write(&c,1);
+
+}
+
 void MainWindow::oneSend()
 {
-//    reverse_le->setText(QString::number(reversed[chan]));
-    timer.setInterval(1);
+
+//    if(MD==PROGRAM)
+//        for(int i=0;i<8;i++)
+//            if(i!=chan)
+//                restSend(i);
+
+    serial_get_timer.setInterval(1);
     char c;
-    // switch()
-    {
-        c=255;
-        port.write(&c,1);
-        //    case 0:
-
-        c=MD;
-        port.write(&c,1);
 
 
-        if((MD==VAC))
-            c=VAC_min_le->text().toInt();
-        else if(MD==CUSTOM)
-            c=V1_le->text().toInt();
-        else if(MD==PROGRAM)
-            c=(V1_le->text().toInt());
 
-        port.write(&c,1);
-        //        ++;
-        //        break;
-        //    case 1:
-        if(MD==VAC)
-            c=VAC_max_le->text().toInt();
-        else
-            c=V2_le->text().toInt();
-        //        qDebug()<<VAC_max_le->text().toInt();
-        port.write(&c,1);
-        //        ++;
-        //        break;
-        //    case 2:
-        if(MD!=PROGRAM)
-            c=t1_le->text().toInt();
-        else
-            c=t1_le->text().toInt();//target
-        port.write(&c,1);
-        //        ++;
-        //        break;
-        //    case 3:
-        c=t2_le->text().toInt();
-        port.write(&c,1);
-        //        ++;
-        //        break;
-        //    case 4:
-        c=dT_le->text().toInt();
-        port.write(&c,1);
+    c=255;
+    port.write(&c,1);
+    //    case 0:
 
-        c=T_le->text().toInt();
-        port.write(&c,1);
-        //        =0;
-        //        timer.stop();
-        //        break;
-        c=chan;
-        port.write(&c,1);
+    c=MD;
+    port.write(&c,1);
 
-        c=reversed[chan];
-        port.write(&c,1);
 
-    }
+    if((MD==VAC))
+        c=VAC_min_le->text().toInt();
+    else if(MD==CUSTOM)
+        c=V1_le->text().toInt();
+    else if(MD==PROGRAM)
+        c=(V1_le->text().toInt());
+
+    port.write(&c,1);
+
+
+    if(MD==VAC)
+        c=VAC_max_le->text().toInt();
+    else
+        c=V2_le->text().toInt();
+
+    port.write(&c,1);
+
+
+    if(MD!=PROGRAM)
+        c=t1_le->text().toInt();
+    else
+        c=t1_le->text().toInt();//target
+    port.write(&c,1);
+
+
+    c=t2_le->text().toInt();
+    port.write(&c,1);
+
+
+    c=dT_le->text().toInt();
+    port.write(&c,1);
+
+    c=T_le->text().toInt();
+    port.write(&c,1);
+
+
+    c=chan;
+    port.write(&c,1);
+
+    c=reverse_le->text().toInt();
+    port.write(&c,1);
+
 
 }
 

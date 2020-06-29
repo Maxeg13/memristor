@@ -14,6 +14,8 @@ public:
 
 
 
+public slots:
+    void restSend(int chan_);
 private slots:
     void chanPressed();
 

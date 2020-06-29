@@ -25,7 +25,6 @@ typedef enum
 //VAC - режим вольт-амперной характеристики
 //PROGRAM - режим программирования проводимости мемристора
 MODE MD=CUSTOM;//CUSTOM - режим по умолчанию
-uint8_t chan_addrs[8] = {0,1,2,3 ,  7, 6, 5, 4};
 int16_t VAC16=0, VAC16_H=0, VAC16_HH=0;
 int16_t prog_val=0;
 int16_t x16=0;
@@ -40,11 +39,9 @@ uint8_t pos_phase=1;
 uint8_t send8;
 uint8_t ptr=0, UDP_cnt;
 uint8_t PROGRAM_done=0;
-uint8_t chan=0;
 char c;
 uint8_t ADC_on;
 uint16_t _adc;
-uint8_t reverted[8]={0,0,0,0,0,0,0,0};
 int ctr;
 
 uint16_t accum;
@@ -52,7 +49,7 @@ int event_ctr;
 int time_step=6;//3
 int eventN=100;
 int ADC_cnt;
-uint8_t ADCH_, ADCL_, ADCH__, ADCL__;
+uint8_t ADCH_, ADCL_;
 uint8_t accum_cnt;
 
 //функция инициализаци АЦП
@@ -95,16 +92,13 @@ void SPI_MasterInit()
 //функция управления ЦАПом 
 // при этом, управление регистром LDAC должно использоваться 
 //вне функции в перспепктиве создания многоканальной схемы
-void setDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 larger
+void setDAC(int16_t x)//_____________bipolar!!! and <<4 larger
 {
-
-
 	x=-x;
 	x+=2048;
 	PORTD&=~(1<<SYNC);
 	send8 = (x >> 8);
 	send8 &= 0b00001111;
-	send8|=(chan_addrs[chan]<<4);
 	SPI_WriteByte(send8);
 	send8=x;
 	SPI_WriteByte(send8);		
@@ -119,82 +113,12 @@ void SPI_WriteByte(uint8_t data)
   while(!(SPSR & (1<<SPIF)));
 }
 
-void set_reverser(uint8_t ind, uint8_t x)
-{
-	
-	switch(ind)
-	{
-		case 0:  
-		if(x)
-			PORTD|=(1<<5);
-		else
-			PORTD&=~(1<<5);
-		break;
-		
-				case 1:  
-		if(x)
-			PORTD|=(1<<6);
-		else
-			PORTD&=~(1<<6);
-		break;
-		
-				case 2:  
-		if(x)
-			PORTD|=(1<<7);
-		else
-			PORTD&=~(1<<7);
-		break;
-		
-				case 3:  
-		if(x)
-			PORTC|=(1<<2);
-		else
-			PORTC&=~(1<<2);
-		break;
-		
-				case 4:  
-		if(x)
-			PORTC|=(1<<3);
-		else
-			PORTC&=~(1<<3);
-		break;
-		
-				case 5:  
-		if(x)
-			PORTC|=(1<<4);
-		else
-			PORTC&=~(1<<4);
-		break;
-		
-				case 6:  
-		if(x)
-			PORTC|=(1<<1);
-		else
-			PORTC&=~(1<<1);
-		break;
-		
-				case 7:  
-		if(x)
-			PORTD|=(1<<4);
-		else
-			PORTD&=~(1<<4);
-		break;
-
-	}
-}
-
-
-
 void main(void)
 {
-	DDRC= 0b00011110;
-	DDRD =0b11111100;	
-	DDRB= 0b00011111;
 	sei();
 	SPI_MasterInit();
 	timer_init();
-    //DDRD = 0b000001100;	
-	
+    DDRD = 0b000001100;	
 	uart_init(BAUDRATE);
 	ADC_Init();
 	
@@ -202,24 +126,10 @@ void main(void)
 	ADCL;
 	ADCL;
 
-
-	//for(int i=0;i<8;i++)
-		//set_reverser(i,1);
-	
-	//set_reverser(0,0);
-	for (int i=0;i<8;i++)
-	{
-		setDAC(0,i);
-	}
-	PORTD&=~(1<<LDAC);
-	PORTD|=(1<<LDAC);
-	
-	//пустой цикл программы (главный цикл основан на прерваниях)	
+//пустой цикл программы (главный цикл основан на прерваниях)	
     while(1)
     {
 
-		//_delay_ms(1000);
-		//_delay_ms(1000);
 
     }
 
@@ -252,7 +162,7 @@ ISR(TIMER2_OVF_vect)
 			if(event_ctr==0)
 			{
 			UDR0=255;
-			setDAC(x16,chan);
+			setDAC(x16);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 			}
@@ -260,13 +170,13 @@ ISR(TIMER2_OVF_vect)
 			else if(event_ctr==t1)
 			{
 				
-			setDAC(0,chan);
+			setDAC(0);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 			}
 			else if(event_ctr==dT)
 			{		
-			setDAC(y16,chan);
+			setDAC(y16);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 		
@@ -281,7 +191,7 @@ ISR(TIMER2_OVF_vect)
 			accum=0;
 			ADC_on=0;
 			accum_cnt=0;			
-			setDAC(0,chan);
+			setDAC(0);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 
@@ -303,9 +213,7 @@ ISR(TIMER2_OVF_vect)
 				
 				
 				
-				case 1:	
-				ADCL__=	ADCL_;
-				ADCH__ = ADCH_;
+				case 1:		
 				ADCL_=ADCL;
 				ADCH_=ADCH;
 				
@@ -325,9 +233,6 @@ ISR(TIMER2_OVF_vect)
 				
 				if(pos_phase)
 				{
-							//PORTC=0b00000010;
-		//PORTB=0b00011111;
-		//PORTD=0b11101100;
 					VAC16+=48;
 					if(VAC16>(y16-1))
 					{
@@ -336,9 +241,6 @@ ISR(TIMER2_OVF_vect)
 				}
 				else
 				{
-					//PORTB=0;
-		//PORTC=0;
-		//PORTD=0;
 					VAC16-=48;
 					if(VAC16<(-x16+1))
 					{
@@ -348,15 +250,8 @@ ISR(TIMER2_OVF_vect)
 				
 				
 				
-				UDR0=VAC16>>4;
-				setDAC(VAC16,chan);
-				//setDAC(VAC16,1);
-				//setDAC(VAC16,2);
-				//setDAC(VAC16,3);
-				//setDAC(VAC16,4);
-				//setDAC(VAC16,5);
-				//setDAC(VAC16,6);
-				//setDAC(VAC16,7);				
+				UDR0=VAC16_H>>4;
+				setDAC(VAC16);	
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 				
@@ -416,19 +311,19 @@ ISR(TIMER2_OVF_vect)
 				if(PROGRAM_done)
 					prog_val=0;
 				
-				setDAC(prog_val,chan);
+				setDAC(prog_val);
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 			}			
 			else if(event_ctr==7)//t1
 			{
-				setDAC(0,chan);
+				setDAC(0);
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 			}
 			else if(event_ctr==9)//dT
 			{		
-				setDAC(y16,chan);
+				setDAC(y16);
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 			}
@@ -442,7 +337,7 @@ ISR(TIMER2_OVF_vect)
 			ADC_on=0;
 			accum_cnt=0;
 			
-			setDAC(0,chan);
+			setDAC(0);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 
@@ -509,22 +404,9 @@ ISR(USART_RX_vect)
 		case 7:
 		T=UDR0;
 		break;
-		case 8:
-		chan=UDR0;
-		break;
-		
-		case 9:
-		reverted[chan]=UDR0;
-		break;
 	}
-	
-	if(MD!=PROGRAM)
-		set_reverser(chan, reverted[chan]);
-	else 
-		set_reverser(chan, 0);
-	
 	dTt2=dT+t2;
 	//UDR0=x16/16;
 	ptr++;
-	ptr%=10;
+	ptr%=8;
 }

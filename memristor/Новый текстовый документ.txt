@@ -1,0 +1,61 @@
+			//UDR0=255;
+			static int i=0;
+			i++;
+
+						
+			_adc=((ADCL>>2)|(ADCH <<6));//old
+						switch(UDP_cnt)
+			{
+				case 0:
+				ADCSRA |= (1 << ADSC); //important  ADC - DAC delay
+				UDR0=255;
+				break;
+				case 1:
+							setDAC(VAC16);	
+			//UDR0=_adc;
+			PORTD&=~(1<<LDAC);
+			PORTD|=(1<<LDAC);
+				UDR0=_adc;
+				break;
+				case 2:
+				UDR0=VAC16>>4;	
+				if(pos_phase)
+				{
+					VAC16+=16;
+					if(VAC16>y16)//just positive
+					{
+					pos_phase=0;
+					//VAC16=-x16;				
+					}
+				}
+				else
+				{
+					VAC16-=16;
+					if(VAC16<-x16)//just positive
+					{
+					pos_phase=1;
+					//VAC16=-x16;				
+					}
+				}				
+			}
+			
+			
+			//ADMUX|=(1<<MUX0);
+			
+			
+
+			
+			
+			//VAC16_HH=VAC16_H;
+			//VAC16_H=VAC16;
+
+			//VAC16
+				//VAC16=-y16;//just positive
+			
+			
+			
+			UDP_cnt++;
+			UDP_cnt%=3;
+			
+			//UDR0=VAC16>>4;
+			
