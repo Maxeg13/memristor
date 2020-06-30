@@ -451,8 +451,15 @@ void MainWindow::Serial_get()
                 ind_c=(ind_c+1)%data_adc.size();
                 //                curveADC->signalDrawing(1);
                 voltage[voltage_ind]=buf_;
-                buf_=buf[i];
+                if(current[voltage_ind]<0)
+                    voltage[voltage_ind]-=
+                            -0.522422*current[voltage_ind]
+                            -0.096021*pow(current[voltage_ind],2)
+                            -0.003557*pow(current[voltage_ind],3)
+                            -0.000041*pow(current[voltage_ind],4);
 
+
+                buf_=buf[i];
                 voltage_ind++;
                 voltage_ind%=voltage.size();
                 setCurve->set_Drawing(voltage,current,voltage_ind,current_ind);
@@ -629,54 +636,54 @@ void MainWindow::vac_btn_pressed()
 
 void MainWindow::restSend(int chan_)
 {
-//    serial_get_timer.setInterval(1);
-//    char c;
+    //    serial_get_timer.setInterval(1);
+    //    char c;
 
 
-//    c=255;
-//    port.write(&c,1);
-//    //    case 0:
+    //    c=255;
+    //    port.write(&c,1);
+    //    //    case 0:
 
-//    c=MD;
-//    port.write(&c,1);
-
-
-//    c=0;
-//    port.write(&c,1);
-
-//    c=0;
-//    port.write(&c,1);
-
-//    c=0;
-//    port.write(&c,1);
+    //    c=MD;
+    //    port.write(&c,1);
 
 
-//    c=0;
-//    port.write(&c,1);
+    //    c=0;
+    //    port.write(&c,1);
+
+    //    c=0;
+    //    port.write(&c,1);
+
+    //    c=0;
+    //    port.write(&c,1);
 
 
-//    c=0;
-//    port.write(&c,1);
-
-//    c=0;
-//    port.write(&c,1);
+    //    c=0;
+    //    port.write(&c,1);
 
 
-//    c=chan_;
-//    port.write(&c,1);
+    //    c=0;
+    //    port.write(&c,1);
 
-//    c=reversed[chan_];
-//    port.write(&c,1);
+    //    c=0;
+    //    port.write(&c,1);
+
+
+    //    c=chan_;
+    //    port.write(&c,1);
+
+    //    c=reversed[chan_];
+    //    port.write(&c,1);
 
 }
 
 void MainWindow::oneSend()
 {
 
-//    if(MD==PROGRAM)
-//        for(int i=0;i<8;i++)
-//            if(i!=chan)
-//                restSend(i);
+    //    if(MD==PROGRAM)
+    //        for(int i=0;i<8;i++)
+    //            if(i!=chan)
+    //                restSend(i);
 
     serial_get_timer.setInterval(1);
     char c;
