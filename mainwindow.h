@@ -15,7 +15,8 @@ public:
 
 
 public slots:
-    void restSend(int chan_);
+//    void restSend(int chan_);
+    void keyReleaseEvent(QKeyEvent *event);
 private slots:
     void chanPressed();
 

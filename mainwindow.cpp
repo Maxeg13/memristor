@@ -9,6 +9,12 @@
 #include <QLabel>
 #include <QPalette>
 #include "drawing.h"
+#include <QFile>
+#include <QTextStream>
+#include <QKeyEvent>
+#include <map>
+//#include <pair>
+
 using namespace std;
 QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1, *rest_btn;
 
@@ -21,6 +27,7 @@ enum MODE
 
 MODE MD;
 
+map<int,int> mapIV;
 int reversed[8]={0,0,0,0,
                  0,0,0,0};
 int adc_shift=120;
@@ -53,38 +60,6 @@ float V1;
 float mvs[]={296, 480, 1020, 1960, 3000};
 float grid[]={10, 20 ,80, 100, 163};
 
-float adc2mvs(float x)
-{
-    int a,b=-10;
-    if(x<grid[0])
-    {
-        a=mvs[0]*(x/grid[0]);
-    }
-    else if(x<grid[1])
-    {
-        a=mvs[0]+(x-grid[0])*((mvs[1]-mvs[0])/(grid[1]-grid[0]));
-        b=grid[0];
-    }
-    else if(x<grid[2])
-    {
-        a=mvs[1]+(x-grid[1])*((mvs[2]-mvs[1])/(grid[2]-grid[1]));
-        b=grid[1];
-    }
-    else if(x<grid[3])
-    {
-        a=mvs[2]+(x-grid[2])*((mvs[3]-mvs[2])/(grid[3]-grid[2]));
-        b=grid[2];
-    }
-    else
-    {
-        a=mvs[3]+(x-grid[3])*((mvs[4]-mvs[3])/(grid[4]-grid[3]));
-        b=grid[3];
-    }
-
-    qDebug()<<b;
-    return a;
-}
-
 vector<float> data_adc;
 
 bool VAC_mode=0;
@@ -100,19 +75,19 @@ QString qstr;
 QSerialPort port;
 int serial_inited;
 myCurve *setCurve;
-
+//QString filename = "Data.txt";
 
 void drawingInit(QwtPlot* d_plot, QString title);
+void WriteFile(QString s);
 
-//void check(vector<float>& vv=vector<float>(3))
-//{
-
-//}
+void ReadFile(QString s, map<int,int>& m);
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
 
+    ReadFile("ShortCircuit", mapIV);
+    //qDebug()<<QString("1:34").split(":")[1];
     voltage.resize(VAC_buf);
     current.resize(VAC_buf);
     //    check
@@ -173,7 +148,7 @@ MainWindow::MainWindow(QWidget *parent)
     curveADC=new myCurve(bufShowSize,data_adc,d_plot,"EMG",Qt::black,Qt::black,ind_c);
 
 
-    QImage image("C:/Users/123/Documents/memristor1/Scheme.png");
+    QImage image("C:/Users/DrPepper/Documents/memristor/Scheme.png");
     QImage image2 = image.scaled(250, 200);
 
     //    QPalette palette;
@@ -451,17 +426,25 @@ void MainWindow::Serial_get()
                 ind_c=(ind_c+1)%data_adc.size();
                 //                curveADC->signalDrawing(1);
                 voltage[voltage_ind]=buf_;
-                if(current[voltage_ind]<0)
-                    voltage[voltage_ind]-=
-                            -0.522422*current[voltage_ind]
-                            -0.096021*pow(current[voltage_ind],2)
-                            -0.003557*pow(current[voltage_ind],3)
-                            -0.000041*pow(current[voltage_ind],4);
+
+                auto mySign=[](int a, bool b){if(b)return a; else return -a;};
+                if(mapIV.find((int)current[voltage_ind])!=mapIV.end())
+                    voltage[voltage_ind]-=mySign(mapIV[(int)current[voltage_ind]],!reversed[chan]);
+
+//                                if(current[voltage_ind]<0)
+//                                    voltage[voltage_ind]-=
+//                                            mySign(
+//                                            -0.522422*current[voltage_ind]
+//                                            -0.096021*pow(current[voltage_ind],2)
+//                                            -0.003557*pow(current[voltage_ind],3)
+//                                            -0.000041*pow(current[voltage_ind],4)
+//                                                ,!reversed[chan] );
 
 
                 buf_=buf[i];
                 voltage_ind++;
                 voltage_ind%=voltage.size();
+
                 setCurve->set_Drawing(voltage,current,voltage_ind,current_ind);
                 break;
 
@@ -603,6 +586,10 @@ void MainWindow::rest_btn_pressed()
 
 void MainWindow::vac_btn_pressed()
 {
+    set_plot->setAxisAutoScale(QwtPlot::xBottom,1);
+    set_plot->setAxisAutoScale(QwtPlot::xTop,1);
+    set_plot->setAxisAutoScale(QwtPlot::yLeft,1);
+    set_plot->setAxisAutoScale(QwtPlot::yRight,1);
     disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     t1_label->setText("tau1");
     t2_label->setText("tau2");
@@ -627,53 +614,30 @@ void MainWindow::vac_btn_pressed()
         it=0;
 
     curveADC->signalDrawing(1);
-
-
-    //        vac_btn->setText("VAC mode");
-
-
 }
 
-void MainWindow::restSend(int chan_)
+void MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
-    //    serial_get_timer.setInterval(1);
-    //    char c;
+    //    QString filename = "Data.txt";
+    //    mapIV
+    switch(event->key())
+    {
+    case Qt::Key_W:
+
+        WriteFile("ShortCircuit");
+
+        break;
+
+    case Qt::Key_R:
+        ReadFile("ShortCircuit",mapIV);
+        break;
 
 
-    //    c=255;
-    //    port.write(&c,1);
-    //    //    case 0:
-
-    //    c=MD;
-    //    port.write(&c,1);
-
-
-    //    c=0;
-    //    port.write(&c,1);
-
-    //    c=0;
-    //    port.write(&c,1);
-
-    //    c=0;
-    //    port.write(&c,1);
-
-
-    //    c=0;
-    //    port.write(&c,1);
-
-
-    //    c=0;
-    //    port.write(&c,1);
-
-    //    c=0;
-    //    port.write(&c,1);
-
-
-    //    c=chan_;
-    //    port.write(&c,1);
-
-    //    c=reversed[chan_];
-    //    port.write(&c,1);
+    case Qt::Key_E:
+        mapIV.erase(mapIV.begin(),mapIV.end());
+        //    default:
+        //        ;
+    }
 
 }
 
@@ -738,6 +702,7 @@ void MainWindow::oneSend()
     port.write(&c,1);
 
     c=reverse_le->text().toInt();
+    reversed[chan]=reverse_le->text().toInt();
     port.write(&c,1);
 
 
@@ -823,4 +788,55 @@ void MainWindow::chanPressed()
     reverse_le->setText(QString::number(reversed[chan]));
     oneSend();
     qDebug()<<"im here";
+}
+
+void WriteFile(QString s)
+{
+    QFile file(s);
+    if (file.open(QIODevice::WriteOnly)) {
+        QTextStream stream(&file);
+        for(int i =0;i<voltage.size();i++)
+            if(current[i]<0)
+                stream << voltage[i] <<":"<<current[i]<<"  ";
+    }
+    file.close();
+}
+
+
+void ReadFile(QString s, map<int,int>& m)
+{
+    QFile inputFile(s);
+    if (inputFile.open(QIODevice::ReadOnly))
+    {
+        QTextStream in(&inputFile);
+        while (!in.atEnd())
+        {
+            QString line = in.readLine();
+
+            QStringList list = line.split(" ",QString::SkipEmptyParts);
+            for(auto& a:list)
+            {
+
+                auto b = a.split(":");
+                auto it=m.find(b[1].toInt());
+                if(it==m.end())
+                    m.emplace(b[1].toInt(),b[0].toInt());
+            }
+            for(auto& a :m)
+            {
+//                qDebug()<<a.first<<":"<<a.second;
+            }
+            map<int,int> m_;
+            for(auto it=m.begin();it!=next(m.end(),-1);it++)
+            {
+                for(auto i = it->first; i!= next(it,1)->first;i++)
+                    m_.emplace(i,
+                              it->second+(i-it->first)*(float)(next(it,1)->second-it->second)/(next(it,1)->first-it->first)
+                              );
+//                qDebug()<<it->first;
+            }
+            m=m_;
+        }
+        inputFile.close();
+    }
 }
