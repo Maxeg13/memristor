@@ -45,7 +45,7 @@ QLabel* V1_label;
 QLineEdit* serial_le;
 QLineEdit* V1_le;
 QSlider* V2_slider;
-QLineEdit* V2_le;
+//QLineEdit* V2_le;
 QLineEdit* t1_le;
 QLineEdit* t2_le;
 QLineEdit* dT_le;
@@ -71,7 +71,7 @@ float mvs[]={296, 480, 1020, 1960, 3000};
 float grid[]={10, 20 ,80, 100, 163};
 
 vector<float> data_adc;
-
+QLabel* V2_label;
 bool VAC_mode=0;
 vector<float> current;
 int current_ind;
@@ -124,8 +124,8 @@ MainWindow::MainWindow(QWidget *parent)
     set_plot->setAxisScale(1,-128,128);
     set_plot->setAxisTitle(0,QString("I, mkA"));
     set_plot->setAxisTitle(2,QString("Voltage, V"));
-//    set_plot->enableAxis(0);
-//    set_plot->enableAxis(1);
+    //    set_plot->enableAxis(0);
+    //    set_plot->enableAxis(1);
     drawingInit(set_plot,"VA dependence");
     setCurve=new myCurve(set_plot,QString("VAC"), QColor(255,0,0,255));
     setCurve->setPen(QColor(255,0,0,255));
@@ -178,7 +178,7 @@ MainWindow::MainWindow(QWidget *parent)
     port_label->setMaximumWidth(labels_width);
     V1_label=new QLabel("V1");
     V1_label->setMaximumWidth(labels_width);
-    QLabel* V2_label=new QLabel("V2 (ref)");
+    V2_label=new QLabel("V2 (ref)");
     V2_label->setMaximumWidth(labels_width);
 
     t1_label=new QLabel("tau1");
@@ -217,42 +217,43 @@ MainWindow::MainWindow(QWidget *parent)
     //    show();
     setStyleSheet("background-color: white");
 
-    serial_le=new QLineEdit("COM3");
-    V1_le=new QLineEdit("10");
-//    V2_le=new QLineEdit("4");
-    V2_slider = new QSlider(Qt::Orientation::Horizontal);
-    V2_slider->setRange(0,126);
-    V2_slider->setMaximumWidth(labels_width);
-    V2_slider->setTickPosition(QSlider::TickPosition::TicksAbove);
-    V2_slider->setValue(30);
+    //common parameterization
+    V2_slider=new QSlider(Qt::Orientation::Horizontal);
+    VAC_max_slider=new QSlider(Qt::Orientation::Horizontal);
+    VAC_min_slider=new QSlider(Qt::Orientation::Horizontal);
+    vector<QSlider*> sliders={VAC_min_slider, VAC_max_slider, V2_slider};
+    for(auto& a:sliders)
+    {
+        a->setTickInterval(2);
+        a->setRange(0,126);
+////        a->setMaximumWidth(labels_width);
+        a->setTickPosition(QSlider::TickPosition::TicksAbove);
+    }
+V2_slider->setRange(0,30);
+
+        serial_le=new QLineEdit("COM3");
+        V1_le=new QLineEdit("10");
+
+
+    V2_slider->setValue(4);
     t1_le=new QLineEdit("6");
     t2_le=new QLineEdit("6");
     dT_le=new QLineEdit("10");
     T_le=new QLineEdit("20");
-    VAC_min_slider = new QSlider(Qt::Orientation::Horizontal);
-    VAC_min_slider->setRange(0,126);
-    VAC_min_slider->setMaximumWidth(labels_width);
-    VAC_min_slider->setTickPosition(QSlider::TickPosition::TicksAbove);
-    VAC_min_slider->setValue(30);
-    //    VAC_max_le=new QLineEdit("30");
-    VAC_max_slider = new QSlider(Qt::Orientation::Horizontal);
-    VAC_max_slider->setRange(0,126);
-    VAC_max_slider->setMaximumWidth(labels_width);
-    VAC_max_slider->setTickPosition(QSlider::TickPosition::TicksAbove);
     VAC_max_slider->setValue(30);
-
+    VAC_min_slider->setValue(30);
     chan_le=new QLineEdit("0");
     reverse_le = new QLineEdit("0");
 
     serial_le->setMaximumWidth(200);
     V1_le->setMaximumWidth(200);
-//    V2_le->setMaximumWidth(200);
+    //    V2_le->setMaximumWidth(200);
     t1_le->setMaximumWidth(200);
     t2_le->setMaximumWidth(200);
     dT_le->setMaximumWidth(200);
     T_le->setMaximumWidth(200);
-    VAC_min_slider->setMaximumWidth(200);
-    VAC_max_slider->setMaximumWidth(200);
+    //    VAC_min_slider->setMaximumWidth(200);
+    //    VAC_max_slider->setMaximumWidth(200);
     reverse_le->setMaximumWidth(200);
     chan_le->setMaximumWidth(200);
 
@@ -325,6 +326,7 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(central);
 
 
+    //    connect()
     connect(chan_le,SIGNAL(returnPressed()),this,SLOT(chanPressed()));
     connect(reverse_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(V1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
@@ -700,7 +702,7 @@ void MainWindow::oneSend()
     char c;
     VAC_min_label->setText("VAC min "+QString().setNum(V_koef*VAC_min_slider->value(), 'g',2));
     VAC_max_label->setText("VAC max "+QString().setNum(V_koef*VAC_max_slider->value(), 'g',2));
-
+    V2_label->setText("Ref: "+QString().setNum(V_koef*V2_slider->value(), 'g',2));
 
     c=255;
     port.write(&c,1);
@@ -837,8 +839,8 @@ void WriteFile(QString s)
     if (file.open(QIODevice::WriteOnly)) {
         QTextStream stream(&file);
         for(int i =0;i<voltage.size();i++)
-//            if(current[i]<0)
-                stream << voltage[i] <<":"<<current[i]<<"  ";
+            //            if(current[i]<0)
+            stream << voltage[i] <<":"<<current[i]<<"  ";
     }
     file.close();
 }
