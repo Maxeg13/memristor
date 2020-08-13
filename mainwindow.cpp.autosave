@@ -224,7 +224,7 @@ MainWindow::MainWindow(QWidget *parent)
     V2_slider->setRange(0,126);
     V2_slider->setMaximumWidth(labels_width);
     V2_slider->setTickPosition(QSlider::TickPosition::TicksAbove);
-    V2_slider->setValue(30);
+    V2_slider->setValue(4);
     t1_le=new QLineEdit("6");
     t2_le=new QLineEdit("6");
     dT_le=new QLineEdit("10");
