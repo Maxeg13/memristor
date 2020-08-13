@@ -3,6 +3,7 @@
 #include <QtSerialPort>
 #include <QDebug>
 #include <QLineEdit>
+#include <QSlider>
 #include <QLayout>
 #include <QTimer>
 #include <QPushButton>
@@ -46,8 +47,12 @@ QLineEdit* t1_le;
 QLineEdit* t2_le;
 QLineEdit* dT_le;
 QLineEdit* T_le;
-QLineEdit* VAC_min_le;
-QLineEdit* VAC_max_le;
+QSlider* VAC_min_slider;
+int VAC_min[8]={30,30,30,30,
+               30,30,30,30};
+QSlider* VAC_max_slider;
+int VAC_max[8]={30,30,30,30,
+                30,30,30,30};
 QLineEdit* chan_le;
 QLineEdit* reverse_le;
 QLabel* t1_label;
@@ -148,7 +153,8 @@ MainWindow::MainWindow(QWidget *parent)
     curveADC=new myCurve(bufShowSize,data_adc,d_plot,"EMG",Qt::black,Qt::black,ind_c);
 
 
-    QImage image("C:/Users/DrPepper/Documents/memristor/Scheme.png");
+//    QImage image("C:/Users/DrPepper/Documents/memristor/Scheme.png");
+    QImage image("./Scheme.png");
     QImage image2 = image.scaled(250, 200);
 
     //    QPalette palette;
@@ -209,8 +215,14 @@ MainWindow::MainWindow(QWidget *parent)
     t2_le=new QLineEdit("6");
     dT_le=new QLineEdit("10");
     T_le=new QLineEdit("20");
-    VAC_min_le=new QLineEdit("126");
-    VAC_max_le=new QLineEdit("126");
+    VAC_min_slider = new QSlider(Qt::Orientation::Horizontal);
+    VAC_min_slider->setMaximumWidth(labels_width);
+    VAC_min_slider->setValue(30);
+//    VAC_max_le=new QLineEdit("30");
+    VAC_max_slider = new QSlider(Qt::Orientation::Horizontal);
+    VAC_max_slider->setMaximumWidth(labels_width);
+    VAC_max_slider->setValue(30);
+
     chan_le=new QLineEdit("0");
     reverse_le = new QLineEdit("0");
 
@@ -221,8 +233,8 @@ MainWindow::MainWindow(QWidget *parent)
     t2_le->setMaximumWidth(200);
     dT_le->setMaximumWidth(200);
     T_le->setMaximumWidth(200);
-    VAC_min_le->setMaximumWidth(200);
-    VAC_max_le->setMaximumWidth(200);
+    VAC_min_slider->setMaximumWidth(200);
+    VAC_max_slider->setMaximumWidth(200);
     reverse_le->setMaximumWidth(200);
     chan_le->setMaximumWidth(200);
 
@@ -252,7 +264,7 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(t1_le,3,5);
 
     lt->addWidget(VAC_max_label,4,4);
-    lt->addWidget(VAC_max_le,4,5);
+    lt->addWidget(VAC_max_slider,4,5);
 
     lt->addWidget(reverse_label,5,4);
     lt->addWidget(reverse_le,5,5);
@@ -269,7 +281,7 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(T_le,2,7);
 
     lt->addWidget(VAC_min_label,3,6);
-    lt->addWidget(VAC_min_le,3,7);
+    lt->addWidget(VAC_min_slider,3,7);
 
 
     lt->addWidget(chan_label,4,6);
@@ -303,8 +315,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(t2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(dT_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(T_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
-    connect(VAC_min_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
-    connect(VAC_max_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
+    connect(VAC_min_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
+    connect(VAC_max_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
 
 
     serial_get_timer.setInterval(1);
@@ -584,6 +596,22 @@ void MainWindow::rest_btn_pressed()
     port.write(&c,1);
 }
 
+void MainWindow::chanPressed()
+{
+    reversed[chan]=reverse_le->text().toInt();
+    VAC_min[chan]=VAC_min_slider->value();
+    VAC_max[chan]=VAC_max_slider->value();
+
+    chan = chan_le->text().toInt();
+
+    VAC_min_slider->setValue((VAC_min[chan]));
+//    VAC_max_le->setText(QString::number(VAC_max[chan]));
+    VAC_max_slider->setValue((VAC_max[chan]));
+    reverse_le->setText(QString::number(reversed[chan]));
+    oneSend();
+
+}
+
 void MainWindow::vac_btn_pressed()
 {
     set_plot->setAxisAutoScale(QwtPlot::xBottom,1);
@@ -663,7 +691,7 @@ void MainWindow::oneSend()
 
 
     if((MD==VAC))
-        c=VAC_min_le->text().toInt();
+        c=VAC_min_slider->value();
     else if(MD==CUSTOM)
         c=V1_le->text().toInt();
     else if(MD==PROGRAM)
@@ -673,7 +701,8 @@ void MainWindow::oneSend()
 
 
     if(MD==VAC)
-        c=VAC_max_le->text().toInt();
+//        c=VAC_max_le->text().toInt();
+        c=VAC_max_slider->value();
     else
         c=V2_le->text().toInt();
 
@@ -780,15 +809,7 @@ MainWindow::~MainWindow()
     //    oneSend();
 }
 
-void MainWindow::chanPressed()
-{
-    reversed[chan]=reverse_le->text().toInt();
 
-    chan = chan_le->text().toInt();
-    reverse_le->setText(QString::number(reversed[chan]));
-    oneSend();
-    qDebug()<<"im here";
-}
 
 void WriteFile(QString s)
 {

@@ -328,7 +328,7 @@ ISR(TIMER2_OVF_vect)
 							//PORTC=0b00000010;
 		//PORTB=0b00011111;
 		//PORTD=0b11101100;
-					VAC16+=48;
+					VAC16+=32;
 					if(VAC16>(y16-1))
 					{
 					pos_phase=0;				
@@ -339,7 +339,7 @@ ISR(TIMER2_OVF_vect)
 					//PORTB=0;
 		//PORTC=0;
 		//PORTD=0;
-					VAC16-=48;
+					VAC16-=32;
 					if(VAC16<(-x16+1))
 					{
 					pos_phase=1;									
