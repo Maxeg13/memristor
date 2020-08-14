@@ -1,6 +1,7 @@
 //v1 , v2 are positive for VAC_mode (convert to -v1 and v2)
 #include "mainwindow.h"
 #include <QtSerialPort>
+#include <QComboBox>
 #include <QDebug>
 #include <QLineEdit>
 #include <QSlider>
@@ -16,7 +17,7 @@
 #include <map>
 //#include <pair>
 
-float V_koef=0.065;
+float V_koef=0.07;
 float I_koef=11.;
 using namespace std;
 QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1, *rest_btn;
@@ -62,7 +63,8 @@ int VAC_min[8]={30,30,30,30,
 QSlider* VAC_max_slider;
 int VAC_max[8]={30,30,30,30,
                 30,30,30,30};
-QLineEdit* chan_le;
+//QLineEdit* chan_le;
+QComboBox* chan_cb;
 QLineEdit* reverse_le;
 QLabel* t1_label;
 QLabel* t2_label;
@@ -161,7 +163,9 @@ MainWindow::MainWindow(QWidget *parent)
     drawingInit(d_plot,QString("current"));
 
     //y axis
-    d_plot->setAxisScale(QwtPlot::yLeft,-512,512);
+    d_plot->setAxisTitle(0,QString("I, mkA"));
+    d_plot->setAxisTitle(2,QString("time"));
+    d_plot->setAxisScale(QwtPlot::yLeft,-512*I_koef,512*I_koef);
     d_plot->setAxisScale(QwtPlot::xBottom,0,bufShowSize);
     curveADC=new myCurve(bufShowSize,data_adc,d_plot,"EMG",Qt::black,Qt::black,ind_c);
 
@@ -244,6 +248,7 @@ MainWindow::MainWindow(QWidget *parent)
 //        connect(a,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     }
     V2_slider->setRange(0,30);
+    V1_slider->setValue(20);
 
 
 
@@ -256,7 +261,12 @@ MainWindow::MainWindow(QWidget *parent)
     T_le=new QLineEdit("20");
     VAC_max_slider->setValue(30);
     VAC_min_slider->setValue(30);
-    chan_le=new QLineEdit("0");
+//    chan_le=new QLineEdit("0");
+    chan_cb=new QComboBox();
+    chan_cb->addItem("1",0);
+    chan_cb->addItem("2",1);
+    chan_cb->addItem("3",2);
+    chan_cb->addItem("4",3);
     reverse_le = new QLineEdit("0");
 
     serial_le->setMaximumWidth(200);
@@ -269,7 +279,7 @@ MainWindow::MainWindow(QWidget *parent)
     //    VAC_min_slider->setMaximumWidth(200);
     //    VAC_max_slider->setMaximumWidth(200);
     reverse_le->setMaximumWidth(200);
-    chan_le->setMaximumWidth(200);
+    chan_cb->setMaximumWidth(200);
 
     //    COMInit();
     connect(serial_le,SIGNAL(returnPressed()),this,SLOT(COMInit()));
@@ -296,19 +306,20 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(t1_label,3,4);
     lt->addWidget(t1_le,3,5);
 
-    lt->addWidget(VAC_max_label,4,4);
-    lt->addWidget(VAC_max_slider,4,5);
+    lt->addWidget(VAC_min_label,4,4);
+    lt->addWidget(VAC_min_slider,4,5);
 
     lt->addWidget(reverse_label,5,4);
     lt->addWidget(reverse_le,5,5);
 
-    lt->addWidget(VAC_min_label, 6,4);
-    lt->addWidget(VAC_min_slider, 6,5);
+    lt->addWidget(V_pl_max_label, 6,4);
+    lt->addWidget(V_pl_max_slider, 6,5);
 
 
 
-    lt->addWidget(t2_label,0,6);
-    lt->addWidget(t2_le,0,7);
+
+    lt->addWidget(chan_label,0,6);
+    lt->addWidget(chan_cb,0,7);
 
     lt->addWidget(dT_label,1,6);
     lt->addWidget(dT_le,1,7);
@@ -316,17 +327,16 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(T_label,2,6);
     lt->addWidget(T_le,2,7);
 
-    lt->addWidget(chan_label,3,6);
-    lt->addWidget(chan_le,3,7);
+    lt->addWidget(t2_label,3,6);
+    lt->addWidget(t2_le,3,7);
 
-
-    lt->addWidget(V_pl_max_label,4,6);
-    lt->addWidget(V_pl_max_slider,4,7);
+    lt->addWidget(VAC_max_label,4,6);
+    lt->addWidget(VAC_max_slider,4,7);
 
     lt->addWidget(targ_label,5,6);
     lt->addWidget(targ_slider,5,7);
 
-    //---------------
+    //-----------------------------
 
 
     lt->addWidget(custom_btn,5,0,1,2);
@@ -352,7 +362,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     //    connect()
-    connect(chan_le,SIGNAL(returnPressed()),this,SLOT(chanPressed()));
+    connect(chan_cb,SIGNAL(currentIndexChanged(int)),this,SLOT(chanPressed()));
     connect(reverse_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
 
     connect(t1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
@@ -424,7 +434,7 @@ void MainWindow::Serial_get()
                 ind_c=(ind_c+1)%data_adc.size();
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-                curveADC->signalDrawing(1);
+                curveADC->signalDrawing(I_koef);
                 break;
 
             }
@@ -565,8 +575,8 @@ void MainWindow::Serial_get()
 
                 //                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
-                if(!PROGRAM_done)
-                    qDebug()<<data_adc[ind_c];
+//                if(!PROGRAM_done)
+//                    qDebug()<<data_adc[ind_c];
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 curveADC->signalDrawing(1);
                 break;
@@ -642,11 +652,13 @@ void MainWindow::rest_btn_pressed()
 
 void MainWindow::chanPressed()
 {
+
     reversed[chan]=reverse_le->text().toInt();
     VAC_min[chan]=VAC_min_slider->value();
     VAC_max[chan]=VAC_max_slider->value();
 
-    chan = chan_le->text().toInt();
+    chan = chan_cb->currentIndex();
+    qDebug()<<chan;
 
     VAC_min_slider->setValue((VAC_min[chan]));
     //    VAC_max_le->setText(QString::number(VAC_max[chan]));
