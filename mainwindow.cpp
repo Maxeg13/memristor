@@ -42,16 +42,20 @@ QwtPlot *d_plot, *set_plot;
 myCurve* curveADC;
 int ind_c;
 QLabel* V1_label;
+QLabel* V_pl_max_label;
 QLineEdit* serial_le;
-QLineEdit* V1_le;
+QSlider* V_pl_max_slider;
+QSlider* V1_slider;
 QSlider* V2_slider;
 //QLineEdit* V2_le;
+QLabel* targ_label;
 QLineEdit* t1_le;
 QLineEdit* t2_le;
 QLineEdit* dT_le;
 QLineEdit* T_le;
 QLabel* VAC_min_label;
 QLabel* VAC_max_label;
+QSlider* targ_slider;
 QSlider* VAC_min_slider;
 int VAC_min[8]={30,30,30,30,
                 30,30,30,30};
@@ -186,6 +190,9 @@ MainWindow::MainWindow(QWidget *parent)
     t2_label=new QLabel("tau2");
     t2_label->setMaximumWidth(labels_width);
 
+    targ_label=new QLabel("targ");
+    V_pl_max_label= new QLabel("V+max: ");
+
     QLabel* dT_label=new QLabel("dT");
     dT_label->setMaximumWidth(labels_width);
 
@@ -217,23 +224,30 @@ MainWindow::MainWindow(QWidget *parent)
     //    show();
     setStyleSheet("background-color: white");
 
+
+
     //common parameterization
+    V_pl_max_slider = new QSlider(Qt::Orientation::Horizontal);
+    targ_slider = new QSlider(Qt::Orientation::Horizontal);
+    V1_slider = new QSlider(Qt::Orientation::Horizontal);
     V2_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_max_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_min_slider=new QSlider(Qt::Orientation::Horizontal);
-    vector<QSlider*> sliders={VAC_min_slider, VAC_max_slider, V2_slider};
+    vector<QSlider*> sliders={V_pl_max_slider, targ_slider, V1_slider, VAC_min_slider, VAC_max_slider, V2_slider};
     for(auto& a:sliders)
     {
         a->setTickInterval(2);
         a->setRange(0,126);
-////        a->setMaximumWidth(labels_width);
+        a->setMaximumWidth(labels_width*3);
         a->setTickPosition(QSlider::TickPosition::TicksAbove);
+        connect(a,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
+//        connect(a,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     }
-V2_slider->setRange(0,30);
+    V2_slider->setRange(0,30);
 
-        serial_le=new QLineEdit("COM3");
-        V1_le=new QLineEdit("10");
 
+
+    serial_le=new QLineEdit("COM3");
 
     V2_slider->setValue(4);
     t1_le=new QLineEdit("6");
@@ -246,7 +260,7 @@ V2_slider->setRange(0,30);
     reverse_le = new QLineEdit("0");
 
     serial_le->setMaximumWidth(200);
-    V1_le->setMaximumWidth(200);
+    //    V1_le->setMaximumWidth(200);
     //    V2_le->setMaximumWidth(200);
     t1_le->setMaximumWidth(200);
     t2_le->setMaximumWidth(200);
@@ -274,7 +288,7 @@ V2_slider->setRange(0,30);
     lt->addWidget(serial_le,0,5);
 
     lt->addWidget(V1_label,1,4);
-    lt->addWidget(V1_le,1,5);
+    lt->addWidget(V1_slider,1,5);
 
     lt->addWidget(V2_label,2,4);
     lt->addWidget(V2_slider,2,5);
@@ -288,6 +302,9 @@ V2_slider->setRange(0,30);
     lt->addWidget(reverse_label,5,4);
     lt->addWidget(reverse_le,5,5);
 
+    lt->addWidget(VAC_min_label, 6,4);
+    lt->addWidget(VAC_min_slider, 6,5);
+
 
 
     lt->addWidget(t2_label,0,6);
@@ -299,12 +316,17 @@ V2_slider->setRange(0,30);
     lt->addWidget(T_label,2,6);
     lt->addWidget(T_le,2,7);
 
-    lt->addWidget(VAC_min_label,3,6);
-    lt->addWidget(VAC_min_slider,3,7);
+    lt->addWidget(chan_label,3,6);
+    lt->addWidget(chan_le,3,7);
 
 
-    lt->addWidget(chan_label,4,6);
-    lt->addWidget(chan_le,4,7);
+    lt->addWidget(V_pl_max_label,4,6);
+    lt->addWidget(V_pl_max_slider,4,7);
+
+    lt->addWidget(targ_label,5,6);
+    lt->addWidget(targ_slider,5,7);
+
+    //---------------
 
 
     lt->addWidget(custom_btn,5,0,1,2);
@@ -313,12 +335,15 @@ V2_slider->setRange(0,30);
     lt->addWidget(prog_btn,6,0,1,2);
     lt->addWidget(rest_btn,6,2,1,2);
 
+    lt->addWidget(rest_btn,6,2,1,2);
+
     //    lt->addWidget(filler_btn,9,1,1,2);
     //    lt->addWidget(filler_btn1,7,2);
 
 
     lt->addWidget(d_plot,7,0,1,4);
     lt->addWidget(set_plot,7,4,1,4);
+
     //    set_plot->setMaximumWidth(500);
 
 
@@ -329,14 +354,13 @@ V2_slider->setRange(0,30);
     //    connect()
     connect(chan_le,SIGNAL(returnPressed()),this,SLOT(chanPressed()));
     connect(reverse_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
-    connect(V1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
-    connect(V2_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
+
     connect(t1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(t2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(dT_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(T_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
-    connect(VAC_min_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
-    connect(VAC_max_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
+
+    connect(targ_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
 
 
     serial_get_timer.setInterval(1);
@@ -563,7 +587,7 @@ void MainWindow::custom_btn_pressed()
     //        it=0;
     disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     V1_label->setText("V1");
-    t1_label->setText("tau1");
+    //    t1_label->setText("tau1");
     t2_label->setText("tau2");
     MD=CUSTOM;
     oneSend();
@@ -573,8 +597,8 @@ void MainWindow::custom_btn_pressed()
 void MainWindow::prog_btn_pressed()
 {
     MD=PROGRAM;
-    t1_label->setText("targ");
-    t2_label->setText("V+ max");
+    //    t1_label->setText("targ");
+    //    t2_label->setText("V+ max");
     oneSend();
     data_adc.resize(data_adc.size(),0);
     for (auto& it:data_adc)
@@ -700,8 +724,11 @@ void MainWindow::oneSend()
 
     serial_get_timer.setInterval(1);
     char c;
+    V_pl_max_label->setText("V+max: "+QString().setNum(V_koef*V_pl_max_slider->value(), 'g',2));
+    targ_label->setText("targ: "+QString().setNum(I_koef*targ_slider->value(), 'g',3));
     VAC_min_label->setText("VAC min "+QString().setNum(V_koef*VAC_min_slider->value(), 'g',2));
     VAC_max_label->setText("VAC max "+QString().setNum(V_koef*VAC_max_slider->value(), 'g',2));
+    V1_label->setText("V1: "+QString().setNum(V_koef*V1_slider->value(), 'g',2));
     V2_label->setText("Ref: "+QString().setNum(V_koef*V2_slider->value(), 'g',2));
 
     c=255;
@@ -715,9 +742,9 @@ void MainWindow::oneSend()
     if((MD==VAC))
         c=VAC_min_slider->value();
     else if(MD==CUSTOM)
-        c=V1_le->text().toInt();
+        c=V1_slider->value();
     else if(MD==PROGRAM)
-        c=(V1_le->text().toInt());
+        c=V1_slider->value();
 
     port.write(&c,1);
 
@@ -734,11 +761,13 @@ void MainWindow::oneSend()
     if(MD!=PROGRAM)
         c=t1_le->text().toInt();
     else
-        c=t1_le->text().toInt();//target
+        c=targ_slider->value();//target
     port.write(&c,1);
 
-
-    c=t2_le->text().toInt();
+    if(MD!=PROGRAM)
+        c=t2_le->text().toInt();
+    else
+        c=V_pl_max_slider->value();
     port.write(&c,1);
 
 
