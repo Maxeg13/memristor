@@ -2,11 +2,13 @@
 #include "mainwindow.h"
 #include <QtSerialPort>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QDebug>
 #include <QLineEdit>
 #include <QSlider>
 #include <QLayout>
 #include <QTimer>
+#include <QGroupBox>
 #include <QPushButton>
 #include <QLabel>
 #include <QPalette>
@@ -39,6 +41,7 @@ int ind_p;
 int chan=0;
 int VAC_buf=300;//400
 int bufShowSize=1000;
+QCheckBox* VAC_check;
 QwtPlot *d_plot, *set_plot;
 myCurve* curveADC;
 int ind_c;
@@ -48,6 +51,7 @@ QLineEdit* serial_le;
 QSlider* V_pl_max_slider;
 QSlider* V1_slider;
 QSlider* V2_slider;
+QSlider* VAC_mini_slider;
 //QLineEdit* V2_le;
 QLabel* targ_label;
 QLineEdit* t1_le;
@@ -65,7 +69,7 @@ int VAC_max[8]={30,30,30,30,
                 30,30,30,30};
 //QLineEdit* chan_le;
 QComboBox* chan_cb;
-QLineEdit* reverse_le;
+QCheckBox* reverse_check;
 QLabel* t1_label;
 QLabel* t2_label;
 
@@ -115,7 +119,7 @@ MainWindow::MainWindow(QWidget *parent)
     prog_btn=new QPushButton("PROGRAM MODE");
     custom_btn=new QPushButton("CUSTOM MODE");
     vac_btn=new QPushButton("VAC MODE");
-
+    VAC_check=new QCheckBox("check: ");
 
     connect(rest_btn,SIGNAL(pressed()),this,SLOT(rest_btn_pressed()));
     connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
@@ -181,7 +185,7 @@ MainWindow::MainWindow(QWidget *parent)
     label->setScaledContents(true);
     label->setPixmap(QPixmap::fromImage(image2));
 
-    int labels_width=65;
+    int labels_width=80;
     QLabel* port_label=new QLabel("COM:");
     port_label->setMaximumWidth(labels_width);
     V1_label=new QLabel("V1");
@@ -203,10 +207,10 @@ MainWindow::MainWindow(QWidget *parent)
     QLabel* T_label=new QLabel("T");
     T_label->setMaximumWidth(labels_width);
 
-    VAC_min_label=new QLabel("VAC_min");
+    VAC_min_label=new QLabel("VAC-");
     VAC_min_label->setMaximumWidth(labels_width);
 
-    VAC_max_label=new QLabel("VAC_max");
+    VAC_max_label=new QLabel("VAC-");
     VAC_max_label->setMaximumWidth(labels_width);
 
     QLabel* chan_label = new QLabel("cnannel ind");
@@ -231,25 +235,27 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     //common parameterization
+    VAC_mini_slider = new QSlider(Qt::Orientation::Horizontal);
     V_pl_max_slider = new QSlider(Qt::Orientation::Horizontal);
     targ_slider = new QSlider(Qt::Orientation::Horizontal);
     V1_slider = new QSlider(Qt::Orientation::Horizontal);
     V2_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_max_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_min_slider=new QSlider(Qt::Orientation::Horizontal);
-    vector<QSlider*> sliders={V_pl_max_slider, targ_slider, V1_slider, VAC_min_slider, VAC_max_slider, V2_slider};
+    vector<QSlider*> sliders={VAC_mini_slider, V_pl_max_slider, targ_slider, V1_slider, VAC_min_slider, VAC_max_slider, V2_slider};
     for(auto& a:sliders)
     {
         a->setTickInterval(2);
         a->setRange(0,126);
-        a->setMaximumWidth(labels_width*3);
+        //        a->setMaximumWidth(labels_width*3);
         a->setTickPosition(QSlider::TickPosition::TicksAbove);
         connect(a,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
-//        connect(a,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
+        //        connect(a,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     }
     V2_slider->setRange(0,30);
     V1_slider->setValue(20);
-
+    targ_slider->setRange(0,60);
+    VAC_mini_slider->setRange(0,30);
 
 
     serial_le=new QLineEdit("COM3");
@@ -261,25 +267,25 @@ MainWindow::MainWindow(QWidget *parent)
     T_le=new QLineEdit("20");
     VAC_max_slider->setValue(30);
     VAC_min_slider->setValue(30);
-//    chan_le=new QLineEdit("0");
+    //    chan_le=new QLineEdit("0");
     chan_cb=new QComboBox();
     chan_cb->addItem("1",0);
     chan_cb->addItem("2",1);
     chan_cb->addItem("3",2);
     chan_cb->addItem("4",3);
-    reverse_le = new QLineEdit("0");
+    reverse_check = new QCheckBox("");
 
-    serial_le->setMaximumWidth(200);
-    //    V1_le->setMaximumWidth(200);
-    //    V2_le->setMaximumWidth(200);
-    t1_le->setMaximumWidth(200);
-    t2_le->setMaximumWidth(200);
-    dT_le->setMaximumWidth(200);
-    T_le->setMaximumWidth(200);
-    //    VAC_min_slider->setMaximumWidth(200);
-    //    VAC_max_slider->setMaximumWidth(200);
-    reverse_le->setMaximumWidth(200);
-    chan_cb->setMaximumWidth(200);
+    //    serial_le->setMaximumWidth(200);
+    //    //    V1_le->setMaximumWidth(200);
+    //    //    V2_le->setMaximumWidth(200);
+    //    t1_le->setMaximumWidth(200);
+    //    t2_le->setMaximumWidth(200);
+    //    dT_le->setMaximumWidth(200);
+    //    T_le->setMaximumWidth(200);
+    //    //    VAC_min_slider->setMaximumWidth(200);
+    //    //    VAC_max_slider->setMaximumWidth(200);
+    //    reverse_le->setMaximumWidth(200);
+    //    chan_cb->setMaximumWidth(200);
 
     //    COMInit();
     connect(serial_le,SIGNAL(returnPressed()),this,SLOT(COMInit()));
@@ -310,7 +316,7 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(VAC_min_slider,4,5);
 
     lt->addWidget(reverse_label,5,4);
-    lt->addWidget(reverse_le,5,5);
+    lt->addWidget(reverse_check,5,5);
 
     lt->addWidget(V_pl_max_label, 6,4);
     lt->addWidget(V_pl_max_slider, 6,5);
@@ -336,8 +342,10 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(targ_label,5,6);
     lt->addWidget(targ_slider,5,7);
 
-    //-----------------------------
+    lt->addWidget(VAC_check,6,6);
+    lt->addWidget(VAC_mini_slider,6,7);
 
+    //-----------------------------
 
     lt->addWidget(custom_btn,5,0,1,2);
     lt->addWidget(vac_btn,5,2,1,2);
@@ -363,13 +371,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     //    connect()
     connect(chan_cb,SIGNAL(currentIndexChanged(int)),this,SLOT(chanPressed()));
-    connect(reverse_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
-
+    connect(reverse_check,SIGNAL(stateChanged(int)),this,SLOT(oneSend()));
+    connect(VAC_check,SIGNAL(stateChanged(int)),this,SLOT(oneSend()));
     connect(t1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(t2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(dT_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(T_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
-
+    connect(VAC_mini_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     connect(targ_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
 
 
@@ -575,10 +583,10 @@ void MainWindow::Serial_get()
 
                 //                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
-//                if(!PROGRAM_done)
-//                    qDebug()<<data_adc[ind_c];
+                //                if(!PROGRAM_done)
+                //                    qDebug()<<data_adc[ind_c];
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-                curveADC->signalDrawing(1);
+                curveADC->signalDrawing(I_koef);
                 break;
 
             }
@@ -646,14 +654,14 @@ void MainWindow::rest_btn_pressed()
     c=chan;
     port.write(&c,1);
 
-    c=reverse_le->text().toInt();
+    c=reverse_check->isChecked();
     port.write(&c,1);
 }
 
 void MainWindow::chanPressed()
 {
 
-    reversed[chan]=reverse_le->text().toInt();
+    reversed[chan]=reverse_check->isChecked();
     VAC_min[chan]=VAC_min_slider->value();
     VAC_max[chan]=VAC_max_slider->value();
 
@@ -663,7 +671,7 @@ void MainWindow::chanPressed()
     VAC_min_slider->setValue((VAC_min[chan]));
     //    VAC_max_le->setText(QString::number(VAC_max[chan]));
     VAC_max_slider->setValue((VAC_max[chan]));
-    reverse_le->setText(QString::number(reversed[chan]));
+//    reverse_le->setText(QString::number(reversed[chan]));
     oneSend();
 
 }
@@ -738,10 +746,11 @@ void MainWindow::oneSend()
     char c;
     V_pl_max_label->setText("V+max: "+QString().setNum(V_koef*V_pl_max_slider->value(), 'g',2));
     targ_label->setText("targ: "+QString().setNum(I_koef*targ_slider->value(), 'g',3));
-    VAC_min_label->setText("VAC min "+QString().setNum(V_koef*VAC_min_slider->value(), 'g',2));
-    VAC_max_label->setText("VAC max "+QString().setNum(V_koef*VAC_max_slider->value(), 'g',2));
+    VAC_min_label->setText("VAC- "+QString().setNum(V_koef*VAC_min_slider->value(), 'g',2));
+    VAC_max_label->setText("VAC+ "+QString().setNum(V_koef*VAC_max_slider->value(), 'g',2));
     V1_label->setText("V1: "+QString().setNum(V_koef*V1_slider->value(), 'g',2));
     V2_label->setText("Ref: "+QString().setNum(V_koef*V2_slider->value(), 'g',2));
+    VAC_check->setText("check: "+QString().setNum(V_koef*VAC_mini_slider->value(), 'g',2));
 
     c=255;
     port.write(&c,1);
@@ -752,7 +761,10 @@ void MainWindow::oneSend()
 
 
     if((MD==VAC))
-        c=VAC_min_slider->value();
+        if(VAC_check->isChecked())
+            c=0;
+        else
+            c=VAC_min_slider->value();
     else if(MD==CUSTOM)
         c=V1_slider->value();
     else if(MD==PROGRAM)
@@ -762,8 +774,10 @@ void MainWindow::oneSend()
 
 
     if(MD==VAC)
-        //        c=VAC_max_le->text().toInt();
-        c=VAC_max_slider->value();
+        if(VAC_check->isChecked())
+            c=VAC_mini_slider->value();
+        else
+            c=VAC_max_slider->value();
     else
         c=V2_slider->value();
 
@@ -793,8 +807,8 @@ void MainWindow::oneSend()
     c=chan;
     port.write(&c,1);
 
-    c=reverse_le->text().toInt();
-    reversed[chan]=reverse_le->text().toInt();
+    c=reverse_check->isChecked();
+    reversed[chan]=reverse_check->isChecked();
     port.write(&c,1);
 
 
