@@ -738,8 +738,8 @@ void MainWindow::oneSend()
     char c;
     V_pl_max_label->setText("V+max: "+QString().setNum(V_koef*V_pl_max_slider->value(), 'g',2));
     targ_label->setText("targ: "+QString().setNum(I_koef*targ_slider->value(), 'g',3));
-    VAC_min_label->setText("VAC min "+QString().setNum(V_koef*VAC_min_slider->value(), 'g',2));
-    VAC_max_label->setText("VAC max "+QString().setNum(V_koef*VAC_max_slider->value(), 'g',2));
+    VAC_min_label->setText("VAC- "+QString().setNum(V_koef*VAC_min_slider->value(), 'g',2));
+    VAC_max_label->setText("VAC+ "+QString().setNum(V_koef*VAC_max_slider->value(), 'g',2));
     V1_label->setText("V1: "+QString().setNum(V_koef*V1_slider->value(), 'g',2));
     V2_label->setText("Ref: "+QString().setNum(V_koef*V2_slider->value(), 'g',2));
 
