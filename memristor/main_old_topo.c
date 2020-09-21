@@ -1,7 +1,3 @@
-#NEW PINOUT WITH MULTIPLEXING
-
-
-
 #define F_CPU 16000000UL
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -151,37 +147,37 @@ void set_reverser(uint8_t ind, uint8_t x)
 		
 				case 3:  
 		if(x)
-			PORTB|=(1<<0);
-		else
-			PORTB&=~(1<<0);
-		break;
-		
-				case 4:  
-		if(x)
-			PORTB|=(1<<1);
-		else
-			PORTB&=~(1<<1);
-		break;
-		
-				case 5:  
-		if(x)
-			PORTB|=(1<<2);
-		else
-			PORTB&=~(1<<2);
-		break;
-		
-				case 6:  
-		if(x)
 			PORTC|=(1<<2);
 		else
 			PORTC&=~(1<<2);
 		break;
 		
+				case 4:  
+		if(x)
+			PORTC|=(1<<3);
+		else
+			PORTC&=~(1<<3);
+		break;
+		
+				case 5:  
+		if(x)
+			PORTC|=(1<<4);
+		else
+			PORTC&=~(1<<4);
+		break;
+		
+				case 6:  
+		if(x)
+			PORTC|=(1<<1);
+		else
+			PORTC&=~(1<<1);
+		break;
+		
 				case 7:  
 		if(x)
-			PORTB|=(1<<4);
+			PORTD|=(1<<4);
 		else
-			PORTB&=~(1<<4);
+			PORTD&=~(1<<4);
 		break;
 
 	}
@@ -192,7 +188,7 @@ void set_reverser(uint8_t ind, uint8_t x)
 void main(void)
 {
 	DDRC= 0b00011110;
-	DDRD =0b11111110;	
+	DDRD =0b11111100;	
 	DDRB= 0b00011111;
 	sei();
 	SPI_MasterInit();

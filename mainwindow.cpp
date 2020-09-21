@@ -19,7 +19,7 @@
 #include <map>
 //#include <pair>
 
-float V_koef=0.07;
+float V_koef=0.070;
 float I_koef=11.;
 using namespace std;
 QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1, *rest_btn;
@@ -188,7 +188,7 @@ MainWindow::MainWindow(QWidget *parent)
     int labels_width=80;
     QLabel* port_label=new QLabel("COM:");
     port_label->setMaximumWidth(labels_width);
-    V1_label=new QLabel("V1");
+    V1_label=new QLabel("V set");
     V1_label->setMaximumWidth(labels_width);
     V2_label=new QLabel("V2 (ref)");
     V2_label->setMaximumWidth(labels_width);
@@ -273,6 +273,10 @@ MainWindow::MainWindow(QWidget *parent)
     chan_cb->addItem("2",1);
     chan_cb->addItem("3",2);
     chan_cb->addItem("4",3);
+    chan_cb->addItem("5",4);
+    chan_cb->addItem("6",5);
+    chan_cb->addItem("7",6);
+    chan_cb->addItem("8",7);
     reverse_check = new QCheckBox("");
 
     //    serial_le->setMaximumWidth(200);
@@ -604,7 +608,7 @@ void MainWindow::custom_btn_pressed()
     //    for (auto& it:data_adc)
     //        it=0;
     disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
-    V1_label->setText("V1");
+    V1_label->setText("V set");
     //    t1_label->setText("tau1");
     t2_label->setText("tau2");
     MD=CUSTOM;
@@ -660,6 +664,8 @@ void MainWindow::rest_btn_pressed()
 
 void MainWindow::chanPressed()
 {
+    rest_btn_pressed();
+
 
     reversed[chan]=reverse_check->isChecked();
     VAC_min[chan]=VAC_min_slider->value();
@@ -671,7 +677,7 @@ void MainWindow::chanPressed()
     VAC_min_slider->setValue((VAC_min[chan]));
     //    VAC_max_le->setText(QString::number(VAC_max[chan]));
     VAC_max_slider->setValue((VAC_max[chan]));
-//    reverse_le->setText(QString::number(reversed[chan]));
+    //    reverse_le->setText(QString::number(reversed[chan]));
     oneSend();
 
 }
@@ -696,7 +702,7 @@ void MainWindow::vac_btn_pressed()
 
     MD=VAC;
 
-    V1_label->setText("V1");
+    V1_label->setText("V set");
     connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
 
 
@@ -748,7 +754,7 @@ void MainWindow::oneSend()
     targ_label->setText("targ: "+QString().setNum(I_koef*targ_slider->value(), 'g',3));
     VAC_min_label->setText("VAC- "+QString().setNum(V_koef*VAC_min_slider->value(), 'g',2));
     VAC_max_label->setText("VAC+ "+QString().setNum(V_koef*VAC_max_slider->value(), 'g',2));
-    V1_label->setText("V1: "+QString().setNum(V_koef*V1_slider->value(), 'g',2));
+    V1_label->setText("V set: "+QString().setNum(V_koef*V1_slider->value(), 'g',2));
     V2_label->setText("Ref: "+QString().setNum(V_koef*V2_slider->value(), 'g',2));
     VAC_check->setText("check: "+QString().setNum(V_koef*VAC_mini_slider->value(), 'g',2));
 
@@ -764,7 +770,10 @@ void MainWindow::oneSend()
         if(VAC_check->isChecked())
             c=0;
         else
-            c=VAC_min_slider->value();
+            if(!reverse_check->isChecked())
+                c=VAC_min_slider->value();
+            else
+                c=VAC_max_slider->value();
     else if(MD==CUSTOM)
         c=V1_slider->value();
     else if(MD==PROGRAM)
@@ -777,7 +786,11 @@ void MainWindow::oneSend()
         if(VAC_check->isChecked())
             c=VAC_mini_slider->value();
         else
-            c=VAC_max_slider->value();
+            if(!reverse_check->isChecked())
+                c=VAC_max_slider->value();
+            else
+                c=VAC_min_slider->value();
+
     else
         c=V2_slider->value();
 

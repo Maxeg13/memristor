@@ -1,1 +1,1 @@
-avrdude -c avrisp -p m328p -b 19000 -P com4 -U lfuse:w:0xE2:m
+avrdude -c avrisp -p m328p -b 19000 -P com9 -U lfuse:w:0xE2:m
