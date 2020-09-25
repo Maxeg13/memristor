@@ -191,6 +191,7 @@ void set_reverser(uint8_t ind, uint8_t x)
 
 void main(void)
 {
+	PORTC|=0b00000000;
 	DDRC= 0b00011110;
 	DDRD =0b11111110;	
 	DDRB= 0b00011111;

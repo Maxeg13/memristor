@@ -62,11 +62,12 @@ QLabel* VAC_min_label;
 QLabel* VAC_max_label;
 QSlider* targ_slider;
 QSlider* VAC_min_slider;
-int VAC_min[8]={30,30,30,30,
-                30,30,30,30};
+int V_m_=25;
+int VAC_min[8]={V_m_,V_m_,V_m_,V_m_,
+                V_m_,V_m_,V_m_,V_m_};
 QSlider* VAC_max_slider;
-int VAC_max[8]={30,30,30,30,
-                30,30,30,30};
+int VAC_max[8]={V_m_,V_m_,V_m_,V_m_,
+                V_m_,V_m_,V_m_,V_m_};
 //QLineEdit* chan_le;
 QComboBox* chan_cb;
 QCheckBox* reverse_check;
@@ -82,7 +83,6 @@ float grid[]={10, 20 ,80, 100, 163};
 
 vector<float> data_adc;
 QLabel* V2_label;
-bool VAC_mode=0;
 vector<float> current;
 int current_ind;
 vector<float> voltage;
@@ -376,7 +376,7 @@ MainWindow::MainWindow(QWidget *parent)
     //    connect()
     connect(chan_cb,SIGNAL(currentIndexChanged(int)),this,SLOT(chanPressed()));
     connect(reverse_check,SIGNAL(stateChanged(int)),this,SLOT(oneSend()));
-    connect(VAC_check,SIGNAL(stateChanged(int)),this,SLOT(oneSend()));
+    connect(VAC_check,SIGNAL(stateChanged(int)),this,SLOT(VAC_check_changed()));
     connect(t1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(t2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(dT_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
@@ -665,6 +665,7 @@ void MainWindow::rest_btn_pressed()
 void MainWindow::chanPressed()
 {
     rest_btn_pressed();
+    QThread::msleep(100);
 
 
     reversed[chan]=reverse_check->isChecked();
@@ -680,6 +681,13 @@ void MainWindow::chanPressed()
     //    reverse_le->setText(QString::number(reversed[chan]));
     oneSend();
 
+}
+
+void MainWindow::VAC_check_changed()
+{
+    MD=VAC;
+
+    oneSend();
 }
 
 void MainWindow::vac_btn_pressed()

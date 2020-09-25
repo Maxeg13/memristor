@@ -19,7 +19,7 @@ public slots:
     void keyReleaseEvent(QKeyEvent *event);
 private slots:
     void chanPressed();
-
+    void VAC_check_changed();
     void oneSend();
     void COMInit();
     void Serial_get();
