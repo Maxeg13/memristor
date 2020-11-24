@@ -18,6 +18,7 @@ public slots:
 //    void restSend(int chan_);
     void keyReleaseEvent(QKeyEvent *event);
 private slots:
+    void setNewImg();
     void chanPressed();
     void VAC_check_changed();
     void oneSend();

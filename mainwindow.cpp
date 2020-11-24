@@ -16,9 +16,13 @@
 #include <QFile>
 #include <QTextStream>
 #include <QKeyEvent>
+#include <QMovie>
 #include <map>
 //#include <pair>
 
+bool imitation_on =
+                false;
+//                true;
 float V_koef=0.070;
 float I_koef=11.;
 using namespace std;
@@ -40,9 +44,9 @@ int adc_shift=120;
 int ind_p;
 int chan=0;
 int VAC_buf=300;//400
-int bufShowSize=1000;
+int bufShowSize=200;
 QCheckBox* VAC_check;
-QwtPlot *d_plot, *set_plot;
+QwtPlot *cur_plot, *set_plot;
 myCurve* curveADC;
 int ind_c;
 QLabel* V1_label;
@@ -81,6 +85,7 @@ float V1;
 float mvs[]={296, 480, 1020, 1960, 3000};
 float grid[]={10, 20 ,80, 100, 163};
 
+QLabel *imit_label;
 vector<float> data_adc;
 QLabel* V2_label;
 vector<float> current;
@@ -90,6 +95,7 @@ int voltage_ind;
 const int buf_N=30;
 char buf[buf_N];
 QTimer serial_get_timer;
+QTimer imit_timer;
 //int ;
 QString qstr;
 QSerialPort port;
@@ -163,18 +169,19 @@ MainWindow::MainWindow(QWidget *parent)
     setCurve->set_Drawing(xx,yy,0,1);
 
 
-    d_plot = new QwtPlot(this);
-    drawingInit(d_plot,QString("current"));
+    cur_plot = new QwtPlot(this);
+    drawingInit(cur_plot,QString("current"));
 
     //y axis
-    d_plot->setAxisTitle(0,QString("I, mkA"));
-    d_plot->setAxisTitle(2,QString("time"));
-    d_plot->setAxisScale(QwtPlot::yLeft,-512*I_koef,512*I_koef);
-    d_plot->setAxisScale(QwtPlot::xBottom,0,bufShowSize);
-    curveADC=new myCurve(bufShowSize,data_adc,d_plot,"EMG",Qt::black,Qt::black,ind_c);
+    cur_plot->setAxisTitle(0,QString("I, mkA"));
+    cur_plot->setAxisTitle(2,QString("time"));
+//    cur_plot->setAxisScale(QwtPlot::yLeft,-512*I_koef,512*I_koef);
+    cur_plot->setAxisScale(QwtPlot::xBottom,0,bufShowSize);
+    curveADC=new myCurve(bufShowSize,data_adc,cur_plot,"EMG",Qt::black,Qt::black,ind_c);
 
 
     //    QImage image("C:/Users/DrPepper/Documents/memristor/Scheme.png");
+    //    QMovie *movie = new QMovie("./rezero.gif");
     QImage image("./Crossbar.jpg");
     QImage image2 = image.scaled(250, 200);
 
@@ -183,7 +190,18 @@ MainWindow::MainWindow(QWidget *parent)
     //pic.res
     QLabel *label = new QLabel(this);
     label->setScaledContents(true);
+    //    label->setMovie(movie);
+    //    movie->start();
     label->setPixmap(QPixmap::fromImage(image2));
+
+
+    QImage imit_img("E:\\pics\\graph1.png");
+    imit_label = new QLabel(this);
+    imit_label->setScaledContents(true);
+    //    label->setMovie(movie);
+    //    movie->start();
+    imit_label->setPixmap(QPixmap::fromImage(imit_img));
+
 
     int labels_width=80;
     QLabel* port_label=new QLabel("COM:");
@@ -363,8 +381,12 @@ MainWindow::MainWindow(QWidget *parent)
     //    lt->addWidget(filler_btn1,7,2);
 
 
-    lt->addWidget(d_plot,7,0,1,4);
-    lt->addWidget(set_plot,7,4,1,4);
+    lt->addWidget(cur_plot,7,0,1,4);
+
+    if(!imitation_on)
+        lt->addWidget(set_plot,7,4,1,4);
+    else
+        lt->addWidget(imit_label,7,4,1,4);
 
     //    set_plot->setMaximumWidth(500);
 
@@ -386,9 +408,14 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     serial_get_timer.setInterval(1);
+
+    imit_timer.setInterval(300);
+    if(imitation_on)
+        imit_timer.start();
     //prog_btn->set
 
     connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+    connect(&imit_timer,SIGNAL(timeout()),this,SLOT(setNewImg()));
 }
 
 
@@ -741,10 +768,24 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 
     case Qt::Key_E:
         mapIV.erase(mapIV.begin(),mapIV.end());
-        //    default:
-        //        ;
+        break;
+
+    case Qt::Key_P:
+        static int cnt=1;
+        QPixmap pix = QPixmap::grabWidget(set_plot);
+        pix.save(QString("E:/pics/graph")+QString::number(cnt)+QString(".png"),"PNG");
+        cnt++;
     }
 
+}
+
+void MainWindow::setNewImg()
+{
+    static int cnt=0;
+    QImage image(QString("E:\\pics\\")+QString("graph")+QString::number(cnt)+QString(".png"));
+    imit_label->setPixmap(QPixmap::fromImage(image));
+    //    qDebug()<<"hey";
+    cnt++; if(cnt>260)cnt=1;
 }
 
 void MainWindow::oneSend()

@@ -1,4 +1,4 @@
-#NEW PINOUT WITH MULTIPLEXING
+//#NEW PINOUT WITH MULTIPLEXING
 
 
 
@@ -258,6 +258,7 @@ ISR(TIMER2_OVF_vect)
 			{
 			UDR0=255;
 			setDAC(x16,chan);
+			setDAC(x16,2);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 			}
@@ -266,12 +267,14 @@ ISR(TIMER2_OVF_vect)
 			{
 				
 			setDAC(0,chan);
+			//setDAC(0,2);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 			}
 			else if(event_ctr==dT)
 			{		
 			setDAC(y16,chan);
+			 //setDAC(y16,2);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 		
@@ -287,6 +290,7 @@ ISR(TIMER2_OVF_vect)
 			ADC_on=0;
 			accum_cnt=0;			
 			setDAC(0,chan);
+			setDAC(0,2);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 
