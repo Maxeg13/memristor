@@ -16,6 +16,8 @@
 #define SPI_SS PB2
 #define BAUD 9600                                   
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
+#define SET_BYTE(port, pos) port|=(1<<pos)
+#define UNSET_BYTE(port, pos) port&=~(1<<pos)
 
 //три возможных режима
 typedef enum
@@ -23,7 +25,8 @@ typedef enum
 	CUSTOM,
 	VAC,
 	PROGRAM,
-	MULT
+	GATHER_MULT,
+	SEPAR_MULT
 } MODE;
 
 //CUSTOM - ручной режим 
@@ -195,7 +198,7 @@ void main(void)
 	PORTC|=0b00000000;
 	DDRC= 0b00011110;
 	DDRD =0b11111110;
-	PORTD|=0b00100000;	
+	//PORTD|=0b00100000;	
 	DDRB= 0b00011111;
 	sei();
 	SPI_MasterInit();
@@ -526,13 +529,28 @@ ISR(USART_RX_vect)
 		
 		case 9:
 		reverted[chan]=UDR0;
-			if(MD==MULT)
+			
+			
+			if(MD==GATHER_MULT)
 			{
 			//	PORTD=0b00100000;
 			//static int ff=1<<5;
-			PORTD=(1<<5)^PORTD;
+			//if(x16>>4)
+				UNSET_BYTE(PORTD, 6);
+				UNSET_BYTE(PORTD, 7);
+				UNSET_BYTE(PORTB, 0);
+				SET_BYTE(PORTD, 5);
+			//PORTD=(1<<5)^PORTD;
 			//PORTD=ff;
-			}	
+			}else if(MD==SEPAR_MULT)	
+			{
+			SET_BYTE(PORTD, 6);
+			SET_BYTE(PORTD, 7);
+			SET_BYTE(PORTB, 0);
+			SET_BYTE(PORTD, 5);
+			}
+			
+			
 			if(MD!=PROGRAM)
 				set_reverser(chan, reverted[chan]);
 			else 

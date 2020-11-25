@@ -21,19 +21,20 @@
 //#include <pair>
 
 bool imitation_on =
-                false;
+        false;
 //                true;
 float V_koef=0.070;
 float I_koef=11.;
 using namespace std;
-QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1, *rest_btn, *mult1_btn;
+QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn;
 
 enum MODE
 {
     CUSTOM,
     VAC,
     PROGRAM,
-    MULT
+    GATHER_MULT,
+    SEPAR_MULT
 };
 
 MODE MD;
@@ -125,12 +126,15 @@ MainWindow::MainWindow(QWidget *parent)
     rest_btn= new QPushButton("take a rest");
     prog_btn=new QPushButton("PROGRAM MODE");
     custom_btn=new QPushButton("CUSTOM MODE");
-    mult1_btn = new QPushButton("name");
+    gather_mult_btn = new QPushButton("gather mult");
+    separ_mult_btn = new QPushButton("separ mult");
     vac_btn=new QPushButton("VAC MODE");
     VAC_check=new QCheckBox("check: ");
 
     //////
-    connect(mult1_btn,SIGNAL(pressed()),this,SLOT(mult1_btn_pressed()));
+    /// \brief connect
+    connect(separ_mult_btn,SIGNAL(pressed()),this,SLOT(separ_mult_btn_pressed()));
+    connect(gather_mult_btn,SIGNAL(pressed()),this,SLOT(gather_mult_btn_pressed()));
     connect(rest_btn,SIGNAL(pressed()),this,SLOT(rest_btn_pressed()));
     connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
     connect(custom_btn,SIGNAL(pressed()),this,SLOT(custom_btn_pressed()));
@@ -179,7 +183,7 @@ MainWindow::MainWindow(QWidget *parent)
     //y axis
     cur_plot->setAxisTitle(0,QString("I, mkA"));
     cur_plot->setAxisTitle(2,QString("time"));
-//    cur_plot->setAxisScale(QwtPlot::yLeft,-512*I_koef,512*I_koef);
+    //    cur_plot->setAxisScale(QwtPlot::yLeft,-512*I_koef,512*I_koef);
     cur_plot->setAxisScale(QwtPlot::xBottom,0,bufShowSize);
     curveADC=new myCurve(bufShowSize,data_adc,cur_plot,"EMG",Qt::black,Qt::black,ind_c);
 
@@ -371,7 +375,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     //-----------------------------
 
-    lt->addWidget(mult1_btn, 4,0,1,2);
+    lt->addWidget(gather_mult_btn, 4,0,1,2);
+    lt->addWidget(separ_mult_btn, 4,2,1,2);
 
     lt->addWidget(custom_btn,5,0,1,2);
     lt->addWidget(vac_btn,5,2,1,2);
@@ -460,7 +465,7 @@ void MainWindow::Serial_get()
     for(int i=0;i<N;i++)
     {
         //        qDebug()<<(uint8_t)buf[i];
-        if((MD==CUSTOM)||(MD==MULT))
+        if((MD==CUSTOM))
         {
             switch(ptr)
             {
@@ -695,21 +700,61 @@ void MainWindow::rest_btn_pressed()
     port.write(&c,1);
 }
 
-void MainWindow::mult1_btn_pressed()
+void MainWindow::gather_mult_btn_pressed()
 {
-    MD=MULT;
+    MD=GATHER_MULT;
 
     char c;
     c=255;
     port.write(&c,1);
     //    case 0:
-    c=MULT;
+    c=MD;
     port.write(&c,1);
 
-    static int ii=1;
-    ii=!ii;
-//    qDebug()<<ii;
-    c=0;
+    static int ii=0b00000001;
+
+    //    qDebug()<<ii;
+    c=ii;
+    port.write(&c,1);
+
+    port.write(&c,1);
+
+    c=t1_le->text().toInt();
+    port.write(&c,1);
+
+
+
+    c=t2_le->text().toInt();
+    port.write(&c,1);
+
+    c=dT_le->text().toInt();
+    port.write(&c,1);
+
+    c=T_le->text().toInt();
+    port.write(&c,1);
+
+    c=chan;
+    port.write(&c,1);
+
+    c=reverse_check->isChecked();
+    port.write(&c,1);
+}
+
+void MainWindow::separ_mult_btn_pressed()
+{
+    MD=SEPAR_MULT;
+
+    char c;
+    c=255;
+    port.write(&c,1);
+    //    case 0:
+    c=MD;
+    port.write(&c,1);
+
+    static int ii=0b00001111;
+
+    //    qDebug()<<ii;
+    c=ii;
     port.write(&c,1);
 
     port.write(&c,1);

@@ -28,7 +28,8 @@ private slots:
     void prog_btn_pressed();
     void custom_btn_pressed();
     void rest_btn_pressed();
-    void mult1_btn_pressed();
+    void gather_mult_btn_pressed();
+    void separ_mult_btn_pressed();
 //    void vac_btn_pressed();
 };
 
