@@ -22,7 +22,8 @@ typedef enum
 {
 	CUSTOM,
 	VAC,
-	PROGRAM
+	PROGRAM,
+	MULT
 } MODE;
 
 //CUSTOM - ручной режим 
@@ -125,7 +126,7 @@ void SPI_WriteByte(uint8_t data)
 
 void set_reverser(uint8_t ind, uint8_t x)
 {
-	
+	if(0)
 	switch(ind)
 	{
 		case 0:  
@@ -193,7 +194,8 @@ void main(void)
 {
 	PORTC|=0b00000000;
 	DDRC= 0b00011110;
-	DDRD =0b11111110;	
+	DDRD =0b11111110;
+	PORTD|=0b00100000;	
 	DDRB= 0b00011111;
 	sei();
 	SPI_MasterInit();
@@ -203,7 +205,7 @@ void main(void)
 	uart_init(BAUDRATE);
 	ADC_Init();
 	
-			ADCSRA |= (1 << ADSC); 
+	ADCSRA |= (1 << ADSC); 
 	ADCL;
 	ADCL;
 
@@ -224,8 +226,8 @@ void main(void)
     {
 
 		//_delay_ms(1000);
-		//_delay_ms(1000);
-
+		//PORTD=PORTD^(PORTD&(1<<6));
+		//PORTD=0xFF^PORTD;
     }
 
 }
@@ -524,13 +526,22 @@ ISR(USART_RX_vect)
 		
 		case 9:
 		reverted[chan]=UDR0;
+			if(MD==MULT)
+			{
+			//	PORTD=0b00100000;
+			//static int ff=1<<5;
+			PORTD=(1<<5)^PORTD;
+			//PORTD=ff;
+			}	
+			if(MD!=PROGRAM)
+				set_reverser(chan, reverted[chan]);
+			else 
+				set_reverser(chan, 0);
+		
 		break;
 	}
 	
-	if(MD!=PROGRAM)
-		set_reverser(chan, reverted[chan]);
-	else 
-		set_reverser(chan, 0);
+
 	
 	dTt2=dT+t2;
 	//UDR0=x16/16;

@@ -26,13 +26,14 @@ bool imitation_on =
 float V_koef=0.070;
 float I_koef=11.;
 using namespace std;
-QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1, *rest_btn;
+QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1, *rest_btn, *mult1_btn;
 
 enum MODE
 {
     CUSTOM,
     VAC,
-    PROGRAM
+    PROGRAM,
+    MULT
 };
 
 MODE MD;
@@ -124,9 +125,12 @@ MainWindow::MainWindow(QWidget *parent)
     rest_btn= new QPushButton("take a rest");
     prog_btn=new QPushButton("PROGRAM MODE");
     custom_btn=new QPushButton("CUSTOM MODE");
+    mult1_btn = new QPushButton("name");
     vac_btn=new QPushButton("VAC MODE");
     VAC_check=new QCheckBox("check: ");
 
+    //////
+    connect(mult1_btn,SIGNAL(pressed()),this,SLOT(mult1_btn_pressed()));
     connect(rest_btn,SIGNAL(pressed()),this,SLOT(rest_btn_pressed()));
     connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
     connect(custom_btn,SIGNAL(pressed()),this,SLOT(custom_btn_pressed()));
@@ -188,11 +192,11 @@ MainWindow::MainWindow(QWidget *parent)
     //    QPalette palette;
     //    QPixmap pic("C:/Users/chibi/Documents/memristor1/Scheme.png");
     //pic.res
-    QLabel *label = new QLabel(this);
-    label->setScaledContents(true);
+    QLabel *picture_label = new QLabel(this);
+    picture_label->setScaledContents(true);
     //    label->setMovie(movie);
     //    movie->start();
-    label->setPixmap(QPixmap::fromImage(image2));
+    picture_label->setPixmap(QPixmap::fromImage(image2));
 
 
     QImage imit_img("E:\\pics\\graph1.png");
@@ -317,10 +321,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 
 
-    lt->addWidget(label,0,0,5,4);
-    label->setMaximumWidth(430);
-
-
+    lt->addWidget(picture_label,0,0,4,4);
+    picture_label->setMaximumWidth(430);
 
     lt->addWidget(port_label,0,4);
     lt->addWidget(serial_le,0,5);
@@ -368,6 +370,8 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(VAC_mini_slider,6,7);
 
     //-----------------------------
+
+    lt->addWidget(mult1_btn, 4,0,1,2);
 
     lt->addWidget(custom_btn,5,0,1,2);
     lt->addWidget(vac_btn,5,2,1,2);
@@ -456,9 +460,8 @@ void MainWindow::Serial_get()
     for(int i=0;i<N;i++)
     {
         //        qDebug()<<(uint8_t)buf[i];
-        if(MD==CUSTOM)
+        if((MD==CUSTOM)||(MD==MULT))
         {
-
             switch(ptr)
             {
             case 0:
@@ -662,7 +665,7 @@ void MainWindow::rest_btn_pressed()
     port.write(&c,1);
     //    case 0:
 
-    c=CUSTOM;
+    c=MD;
     port.write(&c,1);
 
     c=0;
@@ -672,6 +675,49 @@ void MainWindow::rest_btn_pressed()
 
     c=t1_le->text().toInt();
     port.write(&c,1);
+
+
+
+
+    c=t2_le->text().toInt();
+    port.write(&c,1);
+
+    c=dT_le->text().toInt();
+    port.write(&c,1);
+
+    c=T_le->text().toInt();
+    port.write(&c,1);
+
+    c=chan;
+    port.write(&c,1);
+
+    c=reverse_check->isChecked();
+    port.write(&c,1);
+}
+
+void MainWindow::mult1_btn_pressed()
+{
+    MD=MULT;
+
+    char c;
+    c=255;
+    port.write(&c,1);
+    //    case 0:
+    c=MULT;
+    port.write(&c,1);
+
+    static int ii=1;
+    ii=!ii;
+//    qDebug()<<ii;
+    c=0;
+    port.write(&c,1);
+
+    port.write(&c,1);
+
+    c=t1_le->text().toInt();
+    port.write(&c,1);
+
+
 
     c=t2_le->text().toInt();
     port.write(&c,1);
@@ -845,7 +891,6 @@ void MainWindow::oneSend()
 
     port.write(&c,1);
 
-
     if(MD!=PROGRAM)
         c=t1_le->text().toInt();
     else
@@ -857,6 +902,8 @@ void MainWindow::oneSend()
     else
         c=V_pl_max_slider->value();
     port.write(&c,1);
+
+
 
 
     c=dT_le->text().toInt();
