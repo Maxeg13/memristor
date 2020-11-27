@@ -121,6 +121,35 @@ void setDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 larger
 }
 
 
+			
+void gatherMult()
+{
+		UNSET_BYTE(PORTD, 6);
+	UNSET_BYTE(PORTD, 7);				
+	UNSET_BYTE(PORTD, 5);
+	UNSET_BYTE(PORTC, 4);
+	
+	
+	SET_BYTE(PORTC, 1);				
+	SET_BYTE(PORTB, 2);
+	SET_BYTE(PORTB, 1);
+	SET_BYTE(PORTB, 0);
+}
+void separMult()
+{
+	UNSET_BYTE(PORTB, 1);
+	UNSET_BYTE(PORTB, 2);
+	UNSET_BYTE(PORTC, 1);
+	
+	SET_BYTE(PORTC, 4);						
+	SET_BYTE(PORTD, 6);
+	SET_BYTE(PORTD, 7);
+	SET_BYTE(PORTB, 0);
+	SET_BYTE(PORTD, 5);
+}
+
+
+
 void SPI_WriteByte(uint8_t data)
 {
    SPDR = data;
@@ -224,6 +253,7 @@ void main(void)
 	PORTD&=~(1<<LDAC);
 	PORTD|=(1<<LDAC);
 	
+	separMult();
 	//пустой цикл программы (главный цикл основан на прерваниях)	
     while(1)
     {
@@ -536,18 +566,12 @@ ISR(USART_RX_vect)
 			//	PORTD=0b00100000;
 			//static int ff=1<<5;
 			//if(x16>>4)
-				UNSET_BYTE(PORTD, 6);
-				UNSET_BYTE(PORTD, 7);
-				UNSET_BYTE(PORTB, 0);
-				SET_BYTE(PORTD, 5);
+			gatherMult();
 			//PORTD=(1<<5)^PORTD;
 			//PORTD=ff;
 			}else if(MD==SEPAR_MULT)	
 			{
-			SET_BYTE(PORTD, 6);
-			SET_BYTE(PORTD, 7);
-			SET_BYTE(PORTB, 0);
-			SET_BYTE(PORTD, 5);
+			separMult();	
 			}
 			
 			
