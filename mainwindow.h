@@ -30,6 +30,7 @@ private slots:
     void rest_btn_pressed();
     void gather_mult_btn_pressed();
     void separ_mult_btn_pressed();
+    void one_shot_btn_pressed();
 //    void vac_btn_pressed();
 };
 

@@ -26,7 +26,8 @@ bool imitation_on =
 float V_koef=0.070;
 float I_koef=11.;
 using namespace std;
-QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn;
+QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn,
+*filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *one_shot_btn;
 
 enum MODE
 {
@@ -34,7 +35,8 @@ enum MODE
     VAC,
     PROGRAM,
     GATHER_MULT,
-    SEPAR_MULT
+    SEPAR_MULT,
+    ONE_SHOT
 };
 
 MODE MD;
@@ -46,7 +48,7 @@ int adc_shift=120;
 int ind_p;
 int chan=0;
 int VAC_buf=300;//400
-int bufShowSize=200;
+int bufShowSize=40;
 QCheckBox* VAC_check;
 QwtPlot *cur_plot, *set_plot;
 myCurve* curveADC;
@@ -110,9 +112,16 @@ void WriteFile(QString s);
 
 void ReadFile(QString s, map<int,int>& m);
 
+
+QFile* outputFile;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    QString file = "C:\\Users\\DrPepper\\Documents\\memristor\\stat.txt";
+    outputFile = new QFile(file);
+    outputFile->open(QIODevice::WriteOnly);
+
+
 
     ReadFile("ShortCircuit", mapIV);
     //qDebug()<<QString("1:34").split(":")[1];
@@ -128,11 +137,14 @@ MainWindow::MainWindow(QWidget *parent)
     custom_btn=new QPushButton("CUSTOM MODE");
     gather_mult_btn = new QPushButton("gather mult");
     separ_mult_btn = new QPushButton("separ mult");
+    one_shot_btn = new QPushButton("ONE SHOT");
     vac_btn=new QPushButton("VAC MODE");
     VAC_check=new QCheckBox("check: ");
 
     //////
     /// \brief connect
+    ///
+    connect(one_shot_btn,SIGNAL(pressed()),this,SLOT(one_shot_btn_pressed()));
     connect(separ_mult_btn,SIGNAL(pressed()),this,SLOT(separ_mult_btn_pressed()));
     connect(gather_mult_btn,SIGNAL(pressed()),this,SLOT(gather_mult_btn_pressed()));
     connect(rest_btn,SIGNAL(pressed()),this,SLOT(rest_btn_pressed()));
@@ -236,7 +248,7 @@ MainWindow::MainWindow(QWidget *parent)
     VAC_min_label=new QLabel("VAC-");
     VAC_min_label->setMaximumWidth(labels_width);
 
-    VAC_max_label=new QLabel("VAC-");
+    VAC_max_label=new QLabel("VAC+");
     VAC_max_label->setMaximumWidth(labels_width);
 
     QLabel* chan_label = new QLabel("cnannel ind");
@@ -325,7 +337,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
 
-    lt->addWidget(picture_label,0,0,4,4);
+    //    lt->addWidget(picture_label,0,0,4,4);
     picture_label->setMaximumWidth(430);
 
     lt->addWidget(port_label,0,4);
@@ -374,6 +386,8 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(VAC_mini_slider,6,7);
 
     //-----------------------------
+
+    lt->addWidget(one_shot_btn, 3,0,1,2);
 
     lt->addWidget(gather_mult_btn, 4,0,1,2);
     lt->addWidget(separ_mult_btn, 4,2,1,2);
@@ -456,7 +470,7 @@ void MainWindow::COMInit()
 
 void MainWindow::Serial_get()
 {
-
+    static QString ch;
     static uint8_t ptr=0;
     static uint8_t buf1;
     uint16_t h;
@@ -632,6 +646,62 @@ void MainWindow::Serial_get()
             ptr++;
             ptr%=4;
         }
+        else if(MD==ONE_SHOT)
+        {
+            switch(ptr)
+            {
+            case 0:
+                if((uint8_t)buf[i]!=255)
+                {
+                    //                    qDebug()<<"hello";
+                    ptr=4;
+                    ptr%=5;
+                }
+                break;
+            case 1:
+
+                //                qDebug()<<buf1;
+                buf1=(uint8_t)buf[i];
+                //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
+                //                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
+                //                current_ind++;
+                //                current_ind%=current.size();
+
+
+                break;
+            case 2:
+                //                //                qDebug()<<(uint16_t)buf[i];
+                ind_c=(ind_c+1)%data_adc.size();
+                data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
+                curveADC->signalDrawing(I_koef);
+
+                ch=QString::number(data_adc[ind_c]*I_koef);
+                break;
+            case 3:
+                buf1=(uint8_t)buf[i];
+                //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
+                //                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
+                //                current_ind++;
+                //                current_ind%=current.size();
+                break;
+            case 4:
+
+                ind_c=(ind_c+1)%data_adc.size();
+                data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
+                curveADC->signalDrawing(I_koef);
+                QTextStream outStream(outputFile);
+
+                outStream << ch << "    "<<QString::number(data_adc[ind_c]*I_koef)<<endl ;
+                break;
+                //            DUMMY
+                //            case 2:
+                //                break;
+            }
+            ptr++;
+            ptr%=5;
+        }
     }
     //        qDebug()<<current_ind<<voltage_ind;
     //    qDebug()<<N;
@@ -780,6 +850,44 @@ void MainWindow::separ_mult_btn_pressed()
     port.write(&c,1);
 }
 
+void MainWindow::one_shot_btn_pressed()
+{
+    MD = ONE_SHOT;
+
+    char c;
+    c=255;
+    port.write(&c,1);
+    //    case 0:
+    c=MD;
+    port.write(&c,1);
+
+    //    qDebug()<<ii;
+    c=-V1_slider->value();
+    port.write(&c,1);
+
+    c=V2_slider->value();
+    port.write(&c,1);
+
+    port.write(&c,1);
+
+
+
+    c=t2_le->text().toInt();
+    port.write(&c,1);
+
+    c=dT_le->text().toInt();
+    port.write(&c,1);
+
+    c=T_le->text().toInt();
+    port.write(&c,1);
+
+    c=chan;
+    port.write(&c,1);
+
+    c=reverse_check->isChecked();
+    port.write(&c,1);
+}
+
 void MainWindow::chanPressed()
 {
     rest_btn_pressed();
@@ -881,13 +989,6 @@ void MainWindow::setNewImg()
 
 void MainWindow::oneSend()
 {
-
-    //    if(MD==PROGRAM)
-    //        for(int i=0;i<8;i++)
-    //            if(i!=chan)
-    //                restSend(i);
-
-
     serial_get_timer.setInterval(1);
     char c;
     V_pl_max_label->setText("V+max: "+QString().setNum(V_koef*V_pl_max_slider->value(), 'g',2));
@@ -948,15 +1049,11 @@ void MainWindow::oneSend()
         c=V_pl_max_slider->value();
     port.write(&c,1);
 
-
-
-
     c=dT_le->text().toInt();
     port.write(&c,1);
 
     c=T_le->text().toInt();
     port.write(&c,1);
-
 
     c=chan;
     port.write(&c,1);

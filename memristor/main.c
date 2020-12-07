@@ -26,7 +26,8 @@ typedef enum
 	VAC,
 	PROGRAM,
 	GATHER_MULT,
-	SEPAR_MULT
+	SEPAR_MULT,
+	ONE_SHOT
 } MODE;
 
 //CUSTOM - ручной режим 
@@ -36,6 +37,7 @@ MODE MD=CUSTOM;//CUSTOM - режим по умолчанию
 uint8_t chan_addrs[8] = {0,1,2,3 ,  7, 6, 5, 4};
 int16_t VAC16=0, VAC16_H=0, VAC16_HH=0;
 int16_t prog_val=0;
+//int16_t cnt
 int16_t x16=0;
 int16_t y16=0;
 uint8_t sync=0;
@@ -46,7 +48,7 @@ uint8_t dT;
 uint8_t T;
 uint8_t pos_phase=1;
 uint8_t send8;
-uint8_t ptr=0, UDP_cnt;
+uint8_t ptr=0, UDP_cnt;// WHAAAAT???
 uint8_t PROGRAM_done=0;
 uint8_t chan=0;
 char c;
@@ -56,7 +58,7 @@ uint8_t reverted[8]={0,0,0,0,0,0,0,0};
 int ctr;
 
 uint16_t accum;
-int event_ctr;
+int event_cnt;
 int time_step=6;//3
 int eventN=100;
 int ADC_cnt;
@@ -275,21 +277,21 @@ ISR(TIMER2_OVF_vect)
 	{
 		if(MD==CUSTOM)
 		{
-			if(event_ctr==(1))
+			if(event_cnt==(1))
 			{	
 			ADCL_=ADCL;
 			ADCH_=ADCH;
 			UDR0=ADCL_;			
 			}
 			
-			if(event_ctr==(2))
+			if(event_cnt==(2))
 			{	
 			UDR0=ADCH_;				
 			}
 			
 			
 			
-			if(event_ctr==0)
+			if(event_cnt==0)
 			{
 			UDR0=255;
 			setDAC(x16,chan);
@@ -298,7 +300,7 @@ ISR(TIMER2_OVF_vect)
 			PORTD|=(1<<LDAC);
 			}
 			
-			else if(event_ctr==t1)
+			else if(event_cnt==t1)
 			{
 				
 			setDAC(0,chan);
@@ -306,7 +308,7 @@ ISR(TIMER2_OVF_vect)
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 			}
-			else if(event_ctr==dT)
+			else if(event_cnt==dT)
 			{		
 			setDAC(y16,chan);
 			 //setDAC(y16,2);
@@ -314,10 +316,10 @@ ISR(TIMER2_OVF_vect)
 			PORTD|=(1<<LDAC);
 		
 			}
-			else if(event_ctr==(dT+1))
+			else if(event_cnt==(dT+1))
 				ADCSRA |= (1 << ADSC); 
 
-			else if(event_ctr==dTt2)
+			else if(event_cnt==dTt2)
 			{
 			if ( ( UCSR0A & (1<<UDRE0)) )			
 				UDR0=_adc;	
@@ -417,19 +419,19 @@ ISR(TIMER2_OVF_vect)
 			T=16;
 			static uint16_t adc_h;
 			
-			if(event_ctr==(1))
+			if(event_cnt==(1))
 			{	
 				UDR0=PROGRAM_done;
 			}
 
-			if(event_ctr==(2))//ADC GET 
+			if(event_cnt==(2))//ADC GET 
 			{	
 				ADCL_=ADCL;	
 				ADCH_=ADCH;
 				UDR0=ADCL_;
 			}
 			
-			if(event_ctr==(3))//ADC GET CONTINUE
+			if(event_cnt==(3))//ADC GET CONTINUE
 			{	
 				
 				UDR0=ADCH_;
@@ -444,7 +446,7 @@ ISR(TIMER2_OVF_vect)
 				}
 			}
 			
-			if(event_ctr==0)
+			if(event_cnt==0)
 			{
 				UDR0=255;
 				
@@ -464,22 +466,22 @@ ISR(TIMER2_OVF_vect)
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 			}			
-			else if(event_ctr==7)//t1
+			else if(event_cnt==7)//t1
 			{
 				setDAC(0,chan);
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 			}
-			else if(event_ctr==9)//dT
+			else if(event_cnt==9)//dT
 			{		
 				setDAC(y16,chan);
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 			}
-			else if(event_ctr==(9+1))
+			else if(event_cnt==(9+1))
 				ADCSRA |= (1 << ADSC); 
 
-			else if(event_ctr==14)//
+			else if(event_cnt==14)//
 			{
 
 			accum=0;
@@ -489,8 +491,98 @@ ISR(TIMER2_OVF_vect)
 			setDAC(0,chan);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
-
 			}
+		}
+		else if(MD == ONE_SHOT)
+		{
+			//готовим сброс
+			if(event_cnt==0)
+			{
+				separMult();
+			}//сброс
+			else if(event_cnt==1)
+			{
+				setDAC(120<<4,3);
+				setDAC(120<<4,2);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}
+			else if(event_cnt==2)
+			{
+				setDAC(0,3);
+				setDAC(0,2);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}		//reseted		
+			else if(event_cnt==3)
+			{
+				gatherMult();
+			}
+			else if(event_cnt==4)
+			{
+				setDAC(x16,3);				
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}		
+			else if(event_cnt==5)
+			{
+				setDAC(0,3);				
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}	//пнули		
+				//посмотрим, что вышло
+			else if(event_cnt==6)
+			{
+				UDR0=255;
+				separMult();				
+			}			
+			else if(event_cnt==7)
+			{
+				setDAC(y16,3);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+				
+				ADCSRA |= (1 << ADSC); 
+			}	
+			else if(event_cnt==9)
+			{
+				//setDAC(y16,3);
+				ADCL_=ADCL;	
+				ADCH_=ADCH;
+				UDR0=ADCL_;
+			}
+			else if(event_cnt==10)
+			{
+				UDR0=ADCH_; 
+				
+				setDAC(0,3);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}		
+			//3й просмотрен
+			else if(event_cnt==11)
+			{				 
+				setDAC(y16,2);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+				
+				ADCSRA |= (1 << ADSC); 
+			}
+			else if(event_cnt==13)
+			{		
+				ADCL_=ADCL;	
+				ADCH_=ADCH;
+				UDR0=ADCL_;
+			}
+			else if(event_cnt == 14)
+			{
+				UDR0=ADCH_; 
+				
+				setDAC(0,2);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}
+			
 		}
 		
 		
@@ -498,10 +590,19 @@ ISR(TIMER2_OVF_vect)
 		
 		
 		ctr=0;
-		event_ctr++;
-
-		if(event_ctr>T)
-			event_ctr=0;
+		
+		
+		if(MD!=ONE_SHOT)
+		{
+		event_cnt++;
+		if(event_cnt>T)
+			event_cnt=0;
+		}
+		else
+		{
+			if(event_cnt<30)
+				event_cnt++;			
+		}
 	}
 	ctr++;
 }
@@ -573,12 +674,16 @@ ISR(USART_RX_vect)
 			{
 			separMult();	
 			}
+			if(MD == ONE_SHOT)
+			{
+				event_cnt=0;
+			}
 			
 			
-			if(MD!=PROGRAM)
-				set_reverser(chan, reverted[chan]);
-			else 
-				set_reverser(chan, 0);
+			//if(MD!=PROGRAM)
+			//	set_reverser(chan, reverted[chan]);
+			//else 
+			//	set_reverser(chan, 0);
 		
 		break;
 	}
