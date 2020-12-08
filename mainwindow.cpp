@@ -709,6 +709,42 @@ void MainWindow::Serial_get()
         }
         else if(MD == ANALYZE)
         {
+            switch(ptr)
+            {
+            case 0:
+                if((uint8_t)buf[i]!=255)
+                {
+                    ptr=3;
+                    ptr%=4;
+                }
+                break;
+            case 1:
+                qDebug()<<(uint8_t)buf[i];
+                break;
+            case 2:
+
+                //                qDebug()<<buf1;
+                buf1=(uint8_t)buf[i];
+                //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
+                //                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
+                //                current_ind++;
+                //                current_ind%=current.size();
+
+
+                break;
+            case 3:
+                //                //                qDebug()<<(uint16_t)buf[i];
+                ind_c=(ind_c+1)%data_adc.size();
+                data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
+                curveADC->signalDrawing(I_koef);
+
+                adch=QString::number(data_adc[ind_c]*I_koef);
+                break;
+
+            }
+            ptr++;
+            ptr%=4;
 
         }
 

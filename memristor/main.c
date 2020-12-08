@@ -18,6 +18,7 @@
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
 #define SET_BYTE(port, pos) port|=(1<<pos)
 #define UNSET_BYTE(port, pos) port&=~(1<<pos)
+#define STAT_N 20
 
 //три возможных режима
 typedef enum
@@ -49,6 +50,7 @@ uint8_t dTt2=10;
 uint8_t dT;
 uint8_t T;
 uint8_t pos_phase=1;
+uint8_t STAT_step=0;
 uint8_t send8;
 uint8_t ptr=0, UDP_cnt;// WHAAAAT???
 uint8_t PROGRAM_done=0;
@@ -56,6 +58,7 @@ uint8_t chan=0;
 char c;
 uint8_t ADC_on;
 uint16_t _adc;
+uint16_t an_cnt=0;
 uint8_t reverted[8]={0,0,0,0,0,0,0,0};
 int ctr;
 
@@ -127,7 +130,6 @@ void setDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 larger
 
 void resetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
 {
-
     // static int16_t x;
 	//x+=2048;
 	PORTD&=~(1<<SYNC);
@@ -138,7 +140,6 @@ void resetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
 	// send8=x;
 	SPI_WriteByte(0);		
 	PORTD|=(1<<SYNC);
-
 }
 
 			
@@ -325,14 +326,12 @@ ISR(TIMER2_OVF_vect)
 			{
 				
 			setDAC(0,chan);
-			//setDAC(0,2);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 			}
 			else if(event_cnt==dT)
 			{		
 			setDAC(y16,chan);
-			 //setDAC(y16,2);
 			PORTD&=~(1<<LDAC);
 			PORTD|=(1<<LDAC);
 		
@@ -615,6 +614,7 @@ ISR(TIMER2_OVF_vect)
 				setDAC(z16, chan);
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
+				UDR0=255;
 			}
 			else if(event_cnt==1)
 			{
@@ -622,14 +622,56 @@ ISR(TIMER2_OVF_vect)
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 			}
+			//create analyze series
 			else if(event_cnt==3)
 			{
 				setDAC(x16, chan);
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
+				
+				
+				if(an_cnt<(STAT_N))
+				{
+					STAT_step=0;
+					UDR0=STAT_step;					
+				}
+				else if(an_cnt<(STAT_N*2))
+				{
+					STAT_step=1;
+					UDR0=STAT_step;
+					for(int i=0;i<40;i++)//28
+					{
+					PORTD&=~(1<<LDAC);
+					PORTD|=(1<<LDAC);
+					}
+				}
+				else if(an_cnt<(STAT_N*3))
+				{
+					STAT_step=2;
+					UDR0=STAT_step;
+					for(int i=0;i<160;i++)
+					{
+					PORTD&=~(1<<LDAC);
+					PORTD|=(1<<LDAC);
+					}
+				}
+				else if(an_cnt<(STAT_N*4))
+				{
+					STAT_step=3;
+					UDR0=STAT_step;
+					for(int i=0;i<640;i++)
+					{
+					PORTD&=~(1<<LDAC);
+					PORTD|=(1<<LDAC);
+					}
+				}
+				
 				resetDAC(chan);
 				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				PORTD|=(1<<LDAC);				
+				
+				an_cnt++;
+				if(an_cnt==(STAT_N*4)) an_cnt=0;
 			}
 			else if(event_cnt==4)
 			{
@@ -643,6 +685,7 @@ ISR(TIMER2_OVF_vect)
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 				ADCSRA |= (1 << ADSC); 
+				
 			}
 			else if(event_cnt==7)
 			{
@@ -746,7 +789,8 @@ ISR(USART_RX_vect)
 			gatherMult();
 			//PORTD=(1<<5)^PORTD;
 			//PORTD=ff;
-			}else if(MD==SEPAR_MULT)	
+			}
+			else if(MD==SEPAR_MULT)	
 			{
 			separMult();	
 			}
