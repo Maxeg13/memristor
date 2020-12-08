@@ -27,7 +27,8 @@ typedef enum
 	PROGRAM,
 	GATHER_MULT,
 	SEPAR_MULT,
-	ONE_SHOT
+	ONE_SHOT,
+	ANALYZE
 } MODE;
 
 //CUSTOM - ручной режим 
@@ -40,6 +41,7 @@ int16_t prog_val=0;
 //int16_t cnt
 int16_t x16=0;
 int16_t y16=0;
+int16_t z16=0;
 uint8_t sync=0;
 uint8_t t1=2;
 uint8_t t2=2;
@@ -99,7 +101,7 @@ void uart_init(unsigned int ubrr)
 void SPI_MasterInit()
 {
 	DDR_SPI = (1<<DD_MOSI)|(1<<DD_SCK)|(1<<SPI_SS);
-	SPCR = (1<<SPE)|(0<<DORD)|(1<<MSTR)|(1<<CPOL)|(0<<CPHA)|(1<<SPR1)|(0<<SPR0);
+	SPCR = (1<<SPE)|(0<<DORD)|(1<<MSTR)|(1<<CPOL)|(0<<CPHA);//|(1<<SPR1)|(0<<SPR0);
 }
 
 //функция управления ЦАПом 
@@ -114,7 +116,7 @@ void setDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 larger
 	PORTD&=~(1<<SYNC);
 	send8 = (x >> 8);
 	send8 &= 0b00001111;
-	send8|=(chan_addrs[chan]<<4);
+	send8|=(chan_addrs[chan]);
 	SPI_WriteByte(send8);
 	send8=x;
 	SPI_WriteByte(send8);		
@@ -123,10 +125,26 @@ void setDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 larger
 }
 
 
+void resetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
+{
+
+    // static int16_t x;
+	//x+=2048;
+	PORTD&=~(1<<SYNC);
+	//send8 = (x >> 8);
+	// send8 = 0b00001000;
+	// send8|=(chan_addrs[chan]);
+	SPI_WriteByte(0b00001000|chan_addrs[chan]);
+	// send8=x;
+	SPI_WriteByte(0);		
+	PORTD|=(1<<SYNC);
+
+}
+
 			
 void gatherMult()
 {
-		UNSET_BYTE(PORTD, 6);
+	UNSET_BYTE(PORTD, 6);
 	UNSET_BYTE(PORTD, 7);				
 	UNSET_BYTE(PORTD, 5);
 	UNSET_BYTE(PORTC, 4);
@@ -226,6 +244,9 @@ void set_reverser(uint8_t ind, uint8_t x)
 
 void main(void)
 {
+	for (uint8_t i=0; i<8;i++)
+		chan_addrs[i]=chan_addrs[i]<<4;
+	
 	PORTC|=0b00000000;
 	DDRC= 0b00011110;
 	DDRD =0b11111110;
@@ -586,6 +607,60 @@ ISR(TIMER2_OVF_vect)
 		}
 		
 		
+		else if(MD == ANALYZE)
+		{
+			//unset
+			if(event_cnt==0)
+			{
+				setDAC(z16, chan);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}
+			else if(event_cnt==1)
+			{
+				setDAC(0, chan);				
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}
+			else if(event_cnt==3)
+			{
+				setDAC(x16, chan);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+				resetDAC(chan);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}
+			else if(event_cnt==4)
+			{
+				setDAC(0, chan);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+			}
+			else if(event_cnt==6)//measure
+			{
+				setDAC(y16, chan);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+				ADCSRA |= (1 << ADSC); 
+			}
+			else if(event_cnt==7)
+			{
+				setDAC(0, chan);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
+				
+				ADCL_=ADCL;	
+				ADCH_=ADCH;
+				UDR0=ADCL_;
+			}
+			else if(event_cnt==8)
+			{
+				UDR0=ADCH_;
+			}
+			
+		}
+		
 		
 		
 		
@@ -643,7 +718,7 @@ ISR(USART_RX_vect)
 		y16=UDR0<<4;
 		break;
 		case 4:
-		t1=UDR0;
+		z16=UDR0<<4;
 		break;		
 		case 5:
 		t2=UDR0;
@@ -659,8 +734,9 @@ ISR(USART_RX_vect)
 		break;
 		
 		case 9:
-		reverted[chan]=UDR0;
-			
+			reverted[chan]=UDR0;
+		
+			event_cnt=0;			
 			
 			if(MD==GATHER_MULT)
 			{
@@ -676,7 +752,7 @@ ISR(USART_RX_vect)
 			}
 			if(MD == ONE_SHOT)
 			{
-				event_cnt=0;
+				
 			}
 			
 			

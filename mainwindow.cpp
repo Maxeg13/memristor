@@ -26,7 +26,7 @@ bool imitation_on =
 float V_koef=0.070;
 float I_koef=11.;
 using namespace std;
-QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn,
+QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *analyze_btn,
 *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *one_shot_btn;
 
 enum MODE
@@ -36,7 +36,8 @@ enum MODE
     PROGRAM,
     GATHER_MULT,
     SEPAR_MULT,
-    ONE_SHOT
+    ONE_SHOT,
+    ANALYZE
 };
 
 MODE MD;
@@ -53,16 +54,16 @@ QCheckBox* VAC_check;
 QwtPlot *cur_plot, *set_plot;
 myCurve* curveADC;
 int ind_c;
-QLabel* V1_label;
+QLabel* V_set_label;
 QLabel* V_pl_max_label;
 QLineEdit* serial_le;
 QSlider* V_pl_max_slider;
-QSlider* V1_slider;
-QSlider* V2_slider;
+QSlider* V_set_slider;
+QSlider* V_ref_slider;
 QSlider* VAC_mini_slider;
 //QLineEdit* V2_le;
 QLabel* targ_label;
-QLineEdit* t1_le;
+QSlider* V_unset_slider;
 QLineEdit* t2_le;
 QLineEdit* dT_le;
 QLineEdit* T_le;
@@ -79,7 +80,7 @@ int VAC_max[8]={V_m_,V_m_,V_m_,V_m_,
 //QLineEdit* chan_le;
 QComboBox* chan_cb;
 QCheckBox* reverse_check;
-QLabel* t1_label;
+QLabel* unset_label;
 QLabel* t2_label;
 
 //QLabel* t2_label;
@@ -91,7 +92,7 @@ float grid[]={10, 20 ,80, 100, 163};
 
 QLabel *imit_label;
 vector<float> data_adc;
-QLabel* V2_label;
+QLabel* V_ref_label;
 vector<float> current;
 int current_ind;
 vector<float> voltage;
@@ -113,13 +114,13 @@ void WriteFile(QString s);
 void ReadFile(QString s, map<int,int>& m);
 
 
-QFile* outputFile;
+QFile* file_stat;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    QString file = "C:\\Users\\DrPepper\\Documents\\memristor\\stat.txt";
-    outputFile = new QFile(file);
-    outputFile->open(QIODevice::WriteOnly);
+    QString file_name = "C:\\Users\\DrPepper\\Documents\\memristor\\stat.txt";
+    file_stat = new QFile(file_name);
+    file_stat->open(QIODevice::WriteOnly);
 
 
 
@@ -138,6 +139,7 @@ MainWindow::MainWindow(QWidget *parent)
     gather_mult_btn = new QPushButton("gather mult");
     separ_mult_btn = new QPushButton("separ mult");
     one_shot_btn = new QPushButton("ONE SHOT");
+    analyze_btn = new QPushButton("ANALYZE");
     vac_btn=new QPushButton("VAC MODE");
     VAC_check=new QCheckBox("check: ");
 
@@ -149,6 +151,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(gather_mult_btn,SIGNAL(pressed()),this,SLOT(gather_mult_btn_pressed()));
     connect(rest_btn,SIGNAL(pressed()),this,SLOT(rest_btn_pressed()));
     connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
+    connect(analyze_btn,SIGNAL(pressed()),this,SLOT(analyze_btn_pressed()));
     connect(custom_btn,SIGNAL(pressed()),this,SLOT(custom_btn_pressed()));
     //    connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
     connect(prog_btn,SIGNAL(pressed()),this,SLOT(prog_btn_pressed()));
@@ -226,13 +229,13 @@ MainWindow::MainWindow(QWidget *parent)
     int labels_width=80;
     QLabel* port_label=new QLabel("COM:");
     port_label->setMaximumWidth(labels_width);
-    V1_label=new QLabel("V set");
-    V1_label->setMaximumWidth(labels_width);
-    V2_label=new QLabel("V2 (ref)");
-    V2_label->setMaximumWidth(labels_width);
+    V_set_label=new QLabel("V set");
+    V_set_label->setMaximumWidth(labels_width);
+    V_ref_label=new QLabel("V2 (ref)");
+    V_ref_label->setMaximumWidth(labels_width);
 
-    t1_label=new QLabel("tau1");
-    t1_label->setMaximumWidth(labels_width);
+    unset_label=new QLabel("V unset: ");
+    unset_label->setMaximumWidth(labels_width);
     t2_label=new QLabel("tau2");
     t2_label->setMaximumWidth(labels_width);
 
@@ -273,14 +276,15 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     //common parameterization
+    V_unset_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_mini_slider = new QSlider(Qt::Orientation::Horizontal);
     V_pl_max_slider = new QSlider(Qt::Orientation::Horizontal);
     targ_slider = new QSlider(Qt::Orientation::Horizontal);
-    V1_slider = new QSlider(Qt::Orientation::Horizontal);
-    V2_slider=new QSlider(Qt::Orientation::Horizontal);
+    V_set_slider = new QSlider(Qt::Orientation::Horizontal);
+    V_ref_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_max_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_min_slider=new QSlider(Qt::Orientation::Horizontal);
-    vector<QSlider*> sliders={VAC_mini_slider, V_pl_max_slider, targ_slider, V1_slider, VAC_min_slider, VAC_max_slider, V2_slider};
+    vector<QSlider*> sliders={V_unset_slider, VAC_mini_slider, V_pl_max_slider, targ_slider, V_set_slider, VAC_min_slider, VAC_max_slider, V_ref_slider};
     for(auto& a:sliders)
     {
         a->setTickInterval(2);
@@ -290,16 +294,16 @@ MainWindow::MainWindow(QWidget *parent)
         connect(a,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
         //        connect(a,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     }
-    V2_slider->setRange(0,30);
-    V1_slider->setValue(20);
+    V_ref_slider->setRange(0,30);
+    V_set_slider->setValue(20);
     targ_slider->setRange(0,60);
     VAC_mini_slider->setRange(0,30);
 
 
     serial_le=new QLineEdit("COM3");
 
-    V2_slider->setValue(4);
-    t1_le=new QLineEdit("6");
+    V_ref_slider->setValue(4);
+
     t2_le=new QLineEdit("6");
     dT_le=new QLineEdit("10");
     T_le=new QLineEdit("20");
@@ -320,7 +324,7 @@ MainWindow::MainWindow(QWidget *parent)
     //    serial_le->setMaximumWidth(200);
     //    //    V1_le->setMaximumWidth(200);
     //    //    V2_le->setMaximumWidth(200);
-    //    t1_le->setMaximumWidth(200);
+    //    V_unset_slider->setMaximumWidth(200);
     //    t2_le->setMaximumWidth(200);
     //    dT_le->setMaximumWidth(200);
     //    T_le->setMaximumWidth(200);
@@ -343,14 +347,14 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(port_label,0,4);
     lt->addWidget(serial_le,0,5);
 
-    lt->addWidget(V1_label,1,4);
-    lt->addWidget(V1_slider,1,5);
+    lt->addWidget(V_set_label,1,4);
+    lt->addWidget(V_set_slider,1,5);
 
-    lt->addWidget(V2_label,2,4);
-    lt->addWidget(V2_slider,2,5);
+    lt->addWidget(V_ref_label,2,4);
+    lt->addWidget(V_ref_slider,2,5);
 
-    lt->addWidget(t1_label,3,4);
-    lt->addWidget(t1_le,3,5);
+    lt->addWidget(unset_label,3,4);
+    lt->addWidget(V_unset_slider,3,5);
 
     lt->addWidget(VAC_min_label,4,4);
     lt->addWidget(VAC_min_slider,4,5);
@@ -388,6 +392,7 @@ MainWindow::MainWindow(QWidget *parent)
     //-----------------------------
 
     lt->addWidget(one_shot_btn, 3,0,1,2);
+    lt->addWidget(analyze_btn, 3,2,1,2);
 
     lt->addWidget(gather_mult_btn, 4,0,1,2);
     lt->addWidget(separ_mult_btn, 4,2,1,2);
@@ -422,7 +427,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(chan_cb,SIGNAL(currentIndexChanged(int)),this,SLOT(chanPressed()));
     connect(reverse_check,SIGNAL(stateChanged(int)),this,SLOT(oneSend()));
     connect(VAC_check,SIGNAL(stateChanged(int)),this,SLOT(VAC_check_changed()));
-    connect(t1_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
+//    connect(V_unset_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     connect(t2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(dT_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(T_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
@@ -470,7 +475,7 @@ void MainWindow::COMInit()
 
 void MainWindow::Serial_get()
 {
-    static QString ch;
+    static QString adch;
     static uint8_t ptr=0;
     static uint8_t buf1;
     uint16_t h;
@@ -676,7 +681,7 @@ void MainWindow::Serial_get()
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 curveADC->signalDrawing(I_koef);
 
-                ch=QString::number(data_adc[ind_c]*I_koef);
+                adch=QString::number(data_adc[ind_c]*I_koef);
                 break;
             case 3:
                 buf1=(uint8_t)buf[i];
@@ -691,9 +696,9 @@ void MainWindow::Serial_get()
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 curveADC->signalDrawing(I_koef);
-                QTextStream outStream(outputFile);
+                QTextStream outStream(file_stat);
 
-                outStream << ch << "    "<<QString::number(data_adc[ind_c]*I_koef)<<endl ;
+                outStream << adch << "    "<<QString::number(data_adc[ind_c]*I_koef)<<endl ;
                 break;
                 //            DUMMY
                 //            case 2:
@@ -702,6 +707,11 @@ void MainWindow::Serial_get()
             ptr++;
             ptr%=5;
         }
+        else if(MD == ANALYZE)
+        {
+
+        }
+
     }
     //        qDebug()<<current_ind<<voltage_ind;
     //    qDebug()<<N;
@@ -713,8 +723,8 @@ void MainWindow::custom_btn_pressed()
     //    for (auto& it:data_adc)
     //        it=0;
     disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
-    V1_label->setText("V set");
-    //    t1_label->setText("tau1");
+    V_set_label->setText("V set");
+    //    unset_label->setText("tau1");
     t2_label->setText("tau2");
     MD=CUSTOM;
     oneSend();
@@ -724,7 +734,7 @@ void MainWindow::custom_btn_pressed()
 void MainWindow::prog_btn_pressed()
 {
     MD=PROGRAM;
-    //    t1_label->setText("targ");
+    //    unset_label->setText("targ");
     //    t2_label->setText("V+ max");
     oneSend();
     data_adc.resize(data_adc.size(),0);
@@ -748,7 +758,7 @@ void MainWindow::rest_btn_pressed()
 
     port.write(&c,1);
 
-    c=t1_le->text().toInt();
+    c=V_unset_slider->value();
     port.write(&c,1);
 
 
@@ -773,119 +783,161 @@ void MainWindow::rest_btn_pressed()
 void MainWindow::gather_mult_btn_pressed()
 {
     MD=GATHER_MULT;
+    oneSend();
+//    char c;
+//    c=255;
+//    port.write(&c,1);
+//    //    case 0:
+//    c=MD;
+//    port.write(&c,1);
 
-    char c;
-    c=255;
-    port.write(&c,1);
-    //    case 0:
-    c=MD;
-    port.write(&c,1);
+//    static int ii=0b00000001;
 
-    static int ii=0b00000001;
+//    //    qDebug()<<ii;
+//    c=ii;
+//    port.write(&c,1);
 
-    //    qDebug()<<ii;
-    c=ii;
-    port.write(&c,1);
+//    port.write(&c,1);
 
-    port.write(&c,1);
-
-    c=t1_le->text().toInt();
-    port.write(&c,1);
+//    c=V_unset_slider->value();
+//    port.write(&c,1);
 
 
 
-    c=t2_le->text().toInt();
-    port.write(&c,1);
+//    c=t2_le->text().toInt();
+//    port.write(&c,1);
 
-    c=dT_le->text().toInt();
-    port.write(&c,1);
+//    c=dT_le->text().toInt();
+//    port.write(&c,1);
 
-    c=T_le->text().toInt();
-    port.write(&c,1);
+//    c=T_le->text().toInt();
+//    port.write(&c,1);
 
-    c=chan;
-    port.write(&c,1);
+//    c=chan;
+//    port.write(&c,1);
 
-    c=reverse_check->isChecked();
-    port.write(&c,1);
+//    c=reverse_check->isChecked();
+//    port.write(&c,1);
 }
 
 void MainWindow::separ_mult_btn_pressed()
 {
     MD=SEPAR_MULT;
+    oneSend();
 
-    char c;
-    c=255;
-    port.write(&c,1);
-    //    case 0:
-    c=MD;
-    port.write(&c,1);
+//    char c;
+//    c=255;
+//    port.write(&c,1);
+//    //    case 0:
+//    c=MD;
+//    port.write(&c,1);
 
-    static int ii=0b00001111;
+//    static int ii=0b00001111;
 
-    //    qDebug()<<ii;
-    c=ii;
-    port.write(&c,1);
+//    //    qDebug()<<ii;
+//    c=ii;
+//    port.write(&c,1);
 
-    port.write(&c,1);
+//    port.write(&c,1);
 
-    c=t1_le->text().toInt();
-    port.write(&c,1);
+//    c=V_unset_slider->value();
+//    port.write(&c,1);
 
 
 
-    c=t2_le->text().toInt();
-    port.write(&c,1);
+//    c=t2_le->text().toInt();
+//    port.write(&c,1);
 
-    c=dT_le->text().toInt();
-    port.write(&c,1);
+//    c=dT_le->text().toInt();
+//    port.write(&c,1);
 
-    c=T_le->text().toInt();
-    port.write(&c,1);
+//    c=T_le->text().toInt();
+//    port.write(&c,1);
 
-    c=chan;
-    port.write(&c,1);
+//    c=chan;
+//    port.write(&c,1);
 
-    c=reverse_check->isChecked();
-    port.write(&c,1);
+//    c=reverse_check->isChecked();
+//    port.write(&c,1);
 }
 
 void MainWindow::one_shot_btn_pressed()
 {
     MD = ONE_SHOT;
 
-    char c;
-    c=255;
-    port.write(&c,1);
-    //    case 0:
-    c=MD;
-    port.write(&c,1);
+    oneSend();
+//    char c;
+//    c=255;
+//    port.write(&c,1);
+//    //    case 0:
+//    c=MD;
+//    port.write(&c,1);
 
-    //    qDebug()<<ii;
-    c=-V1_slider->value();
-    port.write(&c,1);
+//    //    qDebug()<<ii;
+//    c=-V_set_slider->value();
+//    port.write(&c,1);
 
-    c=V2_slider->value();
-    port.write(&c,1);
+//    c=V_ref_slider->value();
+//    port.write(&c,1);
 
-    port.write(&c,1);
+//    port.write(&c,1);
 
 
 
-    c=t2_le->text().toInt();
-    port.write(&c,1);
+//    c=t2_le->text().toInt();
+//    port.write(&c,1);
 
-    c=dT_le->text().toInt();
-    port.write(&c,1);
+//    c=dT_le->text().toInt();
+//    port.write(&c,1);
 
-    c=T_le->text().toInt();
-    port.write(&c,1);
+//    c=T_le->text().toInt();
+//    port.write(&c,1);
 
-    c=chan;
-    port.write(&c,1);
+//    c=chan;
+//    port.write(&c,1);
 
-    c=reverse_check->isChecked();
-    port.write(&c,1);
+//    c=reverse_check->isChecked();
+//    port.write(&c,1);
+}
+
+void MainWindow::analyze_btn_pressed()
+{
+    MD = ANALYZE;
+
+    oneSend();
+
+//    char c;
+//    c=255;
+//    port.write(&c,1);
+//    //    case 0:
+//    c=MD;
+//    port.write(&c,1);
+
+//    c=-V_set_slider->value();
+//    port.write(&c,1);
+
+//    c=V_ref_slider->value();
+//    port.write(&c,1);
+
+//    c=V_unset_slider->value();
+//    port.write(&c,1);
+
+
+
+//    c=0;
+//    port.write(&c,1);
+
+//    c=dT_le->text().toInt();
+//    port.write(&c,1);
+
+//    c=T_le->text().toInt();
+//    port.write(&c,1);
+
+//    c=chan;
+//    port.write(&c,1);
+
+//    c=reverse_check->isChecked();
+//    port.write(&c,1);
 }
 
 void MainWindow::chanPressed()
@@ -923,7 +975,7 @@ void MainWindow::vac_btn_pressed()
     set_plot->setAxisAutoScale(QwtPlot::yLeft,1);
     set_plot->setAxisAutoScale(QwtPlot::yRight,1);
     disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
-    t1_label->setText("tau1");
+//    unset_label->setText("tau1");
     t2_label->setText("tau2");
     for(auto& it:current)
         it=0;
@@ -936,7 +988,7 @@ void MainWindow::vac_btn_pressed()
 
     MD=VAC;
 
-    V1_label->setText("V set");
+    V_set_label->setText("V set");
     connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
 
 
@@ -995,8 +1047,9 @@ void MainWindow::oneSend()
     targ_label->setText("targ: "+QString().setNum(I_koef*targ_slider->value(), 'g',3));
     VAC_min_label->setText("VAC- "+QString().setNum(V_koef*VAC_min_slider->value(), 'g',2));
     VAC_max_label->setText("VAC+ "+QString().setNum(V_koef*VAC_max_slider->value(), 'g',2));
-    V1_label->setText("V set: "+QString().setNum(V_koef*V1_slider->value(), 'g',2));
-    V2_label->setText("Ref: "+QString().setNum(V_koef*V2_slider->value(), 'g',2));
+    V_set_label->setText("V set: "+QString().setNum(V_koef*V_set_slider->value(), 'g',2));
+    unset_label->setText("V unset: "+QString().setNum(V_koef*V_unset_slider->value(), 'g',2));
+    V_ref_label->setText("Ref: "+QString().setNum(V_koef*V_ref_slider->value(), 'g',2));
     VAC_check->setText("check: "+QString().setNum(V_koef*VAC_mini_slider->value(), 'g',2));
 
     c=255;
@@ -1004,7 +1057,7 @@ void MainWindow::oneSend()
     //    case 0:
 
     c=MD;
-    port.write(&c,1);
+    port.write(&c,1);//1
 
 
     if((MD==VAC))
@@ -1016,10 +1069,14 @@ void MainWindow::oneSend()
             else
                 c=VAC_max_slider->value();
     else if(MD==CUSTOM)
-        c=V1_slider->value();
+        c=V_set_slider->value();
     else if(MD==PROGRAM)
-        c=V1_slider->value();
-
+        c=V_set_slider->value();
+    else if(MD == ANALYZE)
+    {
+        c=-V_set_slider->value();
+    }
+    //2
     port.write(&c,1);
 
 
@@ -1033,21 +1090,20 @@ void MainWindow::oneSend()
                 c=VAC_min_slider->value();
 
     else
-        c=V2_slider->value();
-
-    port.write(&c,1);
+        c=V_ref_slider->value();
+    port.write(&c,1);//3
 
     if(MD!=PROGRAM)
-        c=t1_le->text().toInt();
+        c=V_unset_slider->value();
     else
         c=targ_slider->value();//target
-    port.write(&c,1);
+    port.write(&c,1);//4
 
     if(MD!=PROGRAM)
         c=t2_le->text().toInt();
     else
         c=V_pl_max_slider->value();
-    port.write(&c,1);
+    port.write(&c,1);//5
 
     c=dT_le->text().toInt();
     port.write(&c,1);
