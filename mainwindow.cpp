@@ -1,4 +1,5 @@
 //v1 , v2 are positive for VAC_mode (convert to -v1 and v2)
+//20 us to 3.5 ms , 1V to 5V
 #include "mainwindow.h"
 #include <QtSerialPort>
 #include <QComboBox>
@@ -51,6 +52,7 @@ int chan=0;
 int VAC_buf=300;//400
 int bufShowSize=40;
 QCheckBox* VAC_check;
+QCheckBox* write_check;
 QwtPlot *cur_plot, *set_plot;
 myCurve* curveADC;
 int ind_c;
@@ -115,12 +117,16 @@ void ReadFile(QString s, map<int,int>& m);
 
 
 QFile* file_stat;
+QFile* file_analyze;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    QString file_name = "C:\\Users\\DrPepper\\Documents\\memristor\\stat.txt";
-    file_stat = new QFile(file_name);
+    //    qDebug()<<QString::number(1.2);
+    //    QString file_name = "C:\\Users\\DrPepper\\Documents\\memristor\\stat.txt";
+    file_stat = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\stat.txt"));
     file_stat->open(QIODevice::WriteOnly);
+
+    file_analyze = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\analyze.txt"));
 
 
 
@@ -142,6 +148,7 @@ MainWindow::MainWindow(QWidget *parent)
     analyze_btn = new QPushButton("ANALYZE");
     vac_btn=new QPushButton("VAC MODE");
     VAC_check=new QCheckBox("check: ");
+    write_check = new QCheckBox("write on");
 
     //////
     /// \brief connect
@@ -306,7 +313,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     t2_le=new QLineEdit("6");
     dT_le=new QLineEdit("10");
-    T_le=new QLineEdit("20");
+    T_le=new QLineEdit("8");
     VAC_max_slider->setValue(30);
     VAC_min_slider->setValue(30);
     //    chan_le=new QLineEdit("0");
@@ -390,6 +397,7 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(VAC_mini_slider,6,7);
 
     //-----------------------------
+    lt->addWidget(write_check, 2,0,1,2);
 
     lt->addWidget(one_shot_btn, 3,0,1,2);
     lt->addWidget(analyze_btn, 3,2,1,2);
@@ -427,7 +435,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(chan_cb,SIGNAL(currentIndexChanged(int)),this,SLOT(chanPressed()));
     connect(reverse_check,SIGNAL(stateChanged(int)),this,SLOT(oneSend()));
     connect(VAC_check,SIGNAL(stateChanged(int)),this,SLOT(VAC_check_changed()));
-//    connect(V_unset_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
+    //    connect(V_unset_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     connect(t2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(dT_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(T_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
@@ -709,19 +717,27 @@ void MainWindow::Serial_get()
         }
         else if(MD == ANALYZE)
         {
+            static uint8_t h , hh;
             switch(ptr)
             {
             case 0:
                 if((uint8_t)buf[i]!=255)
                 {
-                    ptr=3;
-                    ptr%=4;
+                    ptr=4;
+                    ptr%=5;
                 }
                 break;
+
             case 1:
-                qDebug()<<(uint8_t)buf[i];
+                h=(uint8_t)buf[i];
                 break;
+
             case 2:
+                hh=(uint8_t)buf[i];
+                qDebug()<<h<<" "<<hh;
+                break;
+
+            case 3:
 
                 //                qDebug()<<buf1;
                 buf1=(uint8_t)buf[i];
@@ -732,7 +748,7 @@ void MainWindow::Serial_get()
 
 
                 break;
-            case 3:
+            case 4:
                 //                //                qDebug()<<(uint16_t)buf[i];
                 ind_c=(ind_c+1)%data_adc.size();
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
@@ -740,11 +756,15 @@ void MainWindow::Serial_get()
                 curveADC->signalDrawing(I_koef);
 
                 adch=QString::number(data_adc[ind_c]*I_koef);
+
+                QTextStream outStream(file_analyze);
+                if(write_check->isChecked())
+                    outStream << h << "   "<<hh<<"   "<<QString::number(data_adc[ind_c]*I_koef)<<endl ;
                 break;
 
             }
             ptr++;
-            ptr%=4;
+            ptr%=5;
 
         }
 
@@ -820,40 +840,40 @@ void MainWindow::gather_mult_btn_pressed()
 {
     MD=GATHER_MULT;
     oneSend();
-//    char c;
-//    c=255;
-//    port.write(&c,1);
-//    //    case 0:
-//    c=MD;
-//    port.write(&c,1);
+    //    char c;
+    //    c=255;
+    //    port.write(&c,1);
+    //    //    case 0:
+    //    c=MD;
+    //    port.write(&c,1);
 
-//    static int ii=0b00000001;
+    //    static int ii=0b00000001;
 
-//    //    qDebug()<<ii;
-//    c=ii;
-//    port.write(&c,1);
+    //    //    qDebug()<<ii;
+    //    c=ii;
+    //    port.write(&c,1);
 
-//    port.write(&c,1);
+    //    port.write(&c,1);
 
-//    c=V_unset_slider->value();
-//    port.write(&c,1);
+    //    c=V_unset_slider->value();
+    //    port.write(&c,1);
 
 
 
-//    c=t2_le->text().toInt();
-//    port.write(&c,1);
+    //    c=t2_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=dT_le->text().toInt();
-//    port.write(&c,1);
+    //    c=dT_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=T_le->text().toInt();
-//    port.write(&c,1);
+    //    c=T_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=chan;
-//    port.write(&c,1);
+    //    c=chan;
+    //    port.write(&c,1);
 
-//    c=reverse_check->isChecked();
-//    port.write(&c,1);
+    //    c=reverse_check->isChecked();
+    //    port.write(&c,1);
 }
 
 void MainWindow::separ_mult_btn_pressed()
@@ -861,40 +881,40 @@ void MainWindow::separ_mult_btn_pressed()
     MD=SEPAR_MULT;
     oneSend();
 
-//    char c;
-//    c=255;
-//    port.write(&c,1);
-//    //    case 0:
-//    c=MD;
-//    port.write(&c,1);
+    //    char c;
+    //    c=255;
+    //    port.write(&c,1);
+    //    //    case 0:
+    //    c=MD;
+    //    port.write(&c,1);
 
-//    static int ii=0b00001111;
+    //    static int ii=0b00001111;
 
-//    //    qDebug()<<ii;
-//    c=ii;
-//    port.write(&c,1);
+    //    //    qDebug()<<ii;
+    //    c=ii;
+    //    port.write(&c,1);
 
-//    port.write(&c,1);
+    //    port.write(&c,1);
 
-//    c=V_unset_slider->value();
-//    port.write(&c,1);
+    //    c=V_unset_slider->value();
+    //    port.write(&c,1);
 
 
 
-//    c=t2_le->text().toInt();
-//    port.write(&c,1);
+    //    c=t2_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=dT_le->text().toInt();
-//    port.write(&c,1);
+    //    c=dT_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=T_le->text().toInt();
-//    port.write(&c,1);
+    //    c=T_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=chan;
-//    port.write(&c,1);
+    //    c=chan;
+    //    port.write(&c,1);
 
-//    c=reverse_check->isChecked();
-//    port.write(&c,1);
+    //    c=reverse_check->isChecked();
+    //    port.write(&c,1);
 }
 
 void MainWindow::one_shot_btn_pressed()
@@ -902,78 +922,78 @@ void MainWindow::one_shot_btn_pressed()
     MD = ONE_SHOT;
 
     oneSend();
-//    char c;
-//    c=255;
-//    port.write(&c,1);
-//    //    case 0:
-//    c=MD;
-//    port.write(&c,1);
+    //    char c;
+    //    c=255;
+    //    port.write(&c,1);
+    //    //    case 0:
+    //    c=MD;
+    //    port.write(&c,1);
 
-//    //    qDebug()<<ii;
-//    c=-V_set_slider->value();
-//    port.write(&c,1);
+    //    //    qDebug()<<ii;
+    //    c=-V_set_slider->value();
+    //    port.write(&c,1);
 
-//    c=V_ref_slider->value();
-//    port.write(&c,1);
+    //    c=V_ref_slider->value();
+    //    port.write(&c,1);
 
-//    port.write(&c,1);
+    //    port.write(&c,1);
 
 
 
-//    c=t2_le->text().toInt();
-//    port.write(&c,1);
+    //    c=t2_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=dT_le->text().toInt();
-//    port.write(&c,1);
+    //    c=dT_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=T_le->text().toInt();
-//    port.write(&c,1);
+    //    c=T_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=chan;
-//    port.write(&c,1);
+    //    c=chan;
+    //    port.write(&c,1);
 
-//    c=reverse_check->isChecked();
-//    port.write(&c,1);
+    //    c=reverse_check->isChecked();
+    //    port.write(&c,1);
 }
 
 void MainWindow::analyze_btn_pressed()
 {
     MD = ANALYZE;
-
+    file_analyze -> open(QIODevice::WriteOnly);
     oneSend();
 
-//    char c;
-//    c=255;
-//    port.write(&c,1);
-//    //    case 0:
-//    c=MD;
-//    port.write(&c,1);
+    //    char c;
+    //    c=255;
+    //    port.write(&c,1);
+    //    //    case 0:
+    //    c=MD;
+    //    port.write(&c,1);
 
-//    c=-V_set_slider->value();
-//    port.write(&c,1);
+    //    c=-V_set_slider->value();
+    //    port.write(&c,1);
 
-//    c=V_ref_slider->value();
-//    port.write(&c,1);
+    //    c=V_ref_slider->value();
+    //    port.write(&c,1);
 
-//    c=V_unset_slider->value();
-//    port.write(&c,1);
+    //    c=V_unset_slider->value();
+    //    port.write(&c,1);
 
 
 
-//    c=0;
-//    port.write(&c,1);
+    //    c=0;
+    //    port.write(&c,1);
 
-//    c=dT_le->text().toInt();
-//    port.write(&c,1);
+    //    c=dT_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=T_le->text().toInt();
-//    port.write(&c,1);
+    //    c=T_le->text().toInt();
+    //    port.write(&c,1);
 
-//    c=chan;
-//    port.write(&c,1);
+    //    c=chan;
+    //    port.write(&c,1);
 
-//    c=reverse_check->isChecked();
-//    port.write(&c,1);
+    //    c=reverse_check->isChecked();
+    //    port.write(&c,1);
 }
 
 void MainWindow::chanPressed()
@@ -1011,7 +1031,7 @@ void MainWindow::vac_btn_pressed()
     set_plot->setAxisAutoScale(QwtPlot::yLeft,1);
     set_plot->setAxisAutoScale(QwtPlot::yRight,1);
     disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
-//    unset_label->setText("tau1");
+    //    unset_label->setText("tau1");
     t2_label->setText("tau2");
     for(auto& it:current)
         it=0;

@@ -18,7 +18,7 @@
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
 #define SET_BYTE(port, pos) port|=(1<<pos)
 #define UNSET_BYTE(port, pos) port&=~(1<<pos)
-#define STAT_N 20
+
 
 //три возможных режима
 typedef enum
@@ -36,10 +36,15 @@ typedef enum
 //VAC - режим вольт-амперной характеристики
 //PROGRAM - режим программирования проводимости мемристора
 MODE MD=CUSTOM;//CUSTOM - режим по умолчанию
+
+uint8_t STAT_N = 14;
+uint8_t STAT_CYCLE = 5;
+uint8_t BIG_STAT_N;
 uint8_t chan_addrs[8] = {0,1,2,3 ,  7, 6, 5, 4};
 int16_t VAC16=0, VAC16_H=0, VAC16_HH=0;
 int16_t prog_val=0;
 //int16_t cnt
+int16_t x16_grad;
 int16_t x16=0;
 int16_t y16=0;
 int16_t z16=0;
@@ -50,7 +55,8 @@ uint8_t dTt2=10;
 uint8_t dT;
 uint8_t T;
 uint8_t pos_phase=1;
-uint8_t STAT_step=0;
+uint8_t STAT_dt_step=0;
+uint8_t STAT_V_step=0;
 uint8_t send8;
 uint8_t ptr=0, UDP_cnt;// WHAAAAT???
 uint8_t PROGRAM_done=0;
@@ -58,7 +64,7 @@ uint8_t chan=0;
 char c;
 uint8_t ADC_on;
 uint16_t _adc;
-uint16_t an_cnt=0;
+uint16_t an_cnt=0, an_cnt_fast=0;
 uint8_t reverted[8]={0,0,0,0,0,0,0,0};
 int ctr;
 
@@ -245,6 +251,8 @@ void set_reverser(uint8_t ind, uint8_t x)
 
 void main(void)
 {
+	BIG_STAT_N = STAT_N*STAT_CYCLE;
+	
 	for (uint8_t i=0; i<8;i++)
 		chan_addrs[i]=chan_addrs[i]<<4;
 	
@@ -503,14 +511,13 @@ ISR(TIMER2_OVF_vect)
 
 			else if(event_cnt==14)//
 			{
-
-			accum=0;
-			ADC_on=0;
-			accum_cnt=0;
-			
-			setDAC(0,chan);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
+				accum=0;
+				ADC_on=0;
+				accum_cnt=0;
+				
+				setDAC(0,chan);
+				PORTD&=~(1<<LDAC);
+				PORTD|=(1<<LDAC);
 			}
 		}
 		else if(MD == ONE_SHOT)
@@ -606,7 +613,7 @@ ISR(TIMER2_OVF_vect)
 		}
 		
 		
-		else if(MD == ANALYZE)
+		else if(MD == ANALYZE)//5 by 5
 		{
 			//unset
 			if(event_cnt==0)
@@ -622,64 +629,96 @@ ISR(TIMER2_OVF_vect)
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 			}
-			//create analyze series
+			//create set impulse
 			else if(event_cnt==3)
 			{
-				setDAC(x16, chan);
+				if(an_cnt<(BIG_STAT_N))
+				{
+					STAT_V_step=0;					 
+				}
+				else if(an_cnt<(BIG_STAT_N*2))
+				{
+					STAT_V_step=1;
+				}
+				else if(an_cnt<(BIG_STAT_N*3))
+				{
+					STAT_V_step=2;
+				}
+				else if(an_cnt<(BIG_STAT_N*4))
+				{
+					STAT_V_step=3;
+				}
+				else if(an_cnt<(BIG_STAT_N*5))
+				{
+					STAT_V_step=4;
+				}////////////						
+				//setDAC(x16, chan);
+				UDR0=STAT_V_step;
+				x16_grad = (-(STAT_V_step+1)*16 )<<4;
+				setDAC(x16_grad, chan);
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 				
 				
-				if(an_cnt<(STAT_N))
+				if(an_cnt_fast<(STAT_N))//20 us
 				{
-					STAT_step=0;
-					UDR0=STAT_step;					
+					STAT_dt_step=0;									
 				}
-				else if(an_cnt<(STAT_N*2))
+				else if(an_cnt_fast<(STAT_N*2))//80 us
 				{
-					STAT_step=1;
-					UDR0=STAT_step;
+					STAT_dt_step=1;
 					for(int i=0;i<40;i++)//28
 					{
 					PORTD&=~(1<<LDAC);
 					PORTD|=(1<<LDAC);
 					}
 				}
-				else if(an_cnt<(STAT_N*3))
+				else if(an_cnt_fast<(STAT_N*3))//220 us
 				{
-					STAT_step=2;
-					UDR0=STAT_step;
+					STAT_dt_step=2;
 					for(int i=0;i<160;i++)
 					{
 					PORTD&=~(1<<LDAC);
 					PORTD|=(1<<LDAC);
 					}
 				}
-				else if(an_cnt<(STAT_N*4))
+				else if(an_cnt_fast<(STAT_N*4))//900 us
 				{
-					STAT_step=3;
-					UDR0=STAT_step;
+					STAT_dt_step=3;
 					for(int i=0;i<640;i++)
 					{
 					PORTD&=~(1<<LDAC);
 					PORTD|=(1<<LDAC);
 					}
 				}
+				else if(an_cnt_fast<(BIG_STAT_N))//3.5 ms
+				{
+					STAT_dt_step=4;
+					for(int i=0;i<2560;i++)
+					{
+					PORTD&=~(1<<LDAC);
+					PORTD|=(1<<LDAC);
+					}
+				}////////////////
+									
 				
 				resetDAC(chan);
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);				
 				
-				an_cnt++;
-				if(an_cnt==(STAT_N*4)) an_cnt=0;
+				an_cnt++; // upper				
+				if(an_cnt>(BIG_STAT_N*5)) an_cnt=0; // lower
+				
+				an_cnt_fast = an_cnt%BIG_STAT_N;
 			}
 			else if(event_cnt==4)
 			{
+				UDR0=STAT_dt_step;
 				setDAC(0, chan);
 				PORTD&=~(1<<LDAC);
 				PORTD|=(1<<LDAC);
 			}
-			else if(event_cnt==6)//measure
+			else if(event_cnt==6)//start measure
 			{
 				setDAC(y16, chan);
 				PORTD&=~(1<<LDAC);
