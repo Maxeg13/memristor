@@ -32,6 +32,7 @@ private slots:
     void separ_mult_btn_pressed();
     void one_shot_btn_pressed();
     void analyze_btn_pressed();
+    void write_check_state_changed(int);
 //    void vac_btn_pressed();
 };
 

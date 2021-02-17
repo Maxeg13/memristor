@@ -46,8 +46,9 @@ int16_t prog_val=0;
 //int16_t cnt
 int16_t x16_grad;
 int16_t x16=0;
-int16_t y16=0;
-int16_t z16=0;
+int16_t x16_simple;
+int16_t ref16=0;
+int16_t unset16=0;
 uint8_t sync=0;
 uint8_t t1=2;
 uint8_t t2=2;
@@ -116,7 +117,7 @@ void SPI_MasterInit()
 //функция управления ЦАПом 
 // при этом, управление регистром LDAC должно использоваться 
 //вне функции в перспепктиве создания многоканальной схемы
-void setDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 larger
+void prepareSetDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 larger
 {
 
 
@@ -134,7 +135,7 @@ void setDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 larger
 }
 
 
-void resetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
+void prepareResetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
 {
     // static int16_t x;
 	//x+=2048;
@@ -247,6 +248,10 @@ void set_reverser(uint8_t ind, uint8_t x)
 	}
 }
 
+void setDAC(){
+	PORTD&=~(1<<LDAC);
+	PORTD|=(1<<LDAC);	
+}
 
 
 void main(void)
@@ -280,11 +285,9 @@ void main(void)
 	//set_reverser(0,0);
 	for (int i=0;i<8;i++)
 	{
-		setDAC(0,i);
+		prepareSetDAC(0,i);
 	}
-	PORTD&=~(1<<LDAC);
-	PORTD|=(1<<LDAC);
-	
+setDAC();	
 	separMult();
 	//пустой цикл программы (главный цикл основан на прерваниях)	
     while(1)
@@ -324,24 +327,21 @@ ISR(TIMER2_OVF_vect)
 			if(event_cnt==0)
 			{
 			UDR0=255;
-			setDAC(x16,chan);
-			setDAC(x16,2);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
+			prepareSetDAC(x16,chan);
+			prepareSetDAC(x16,2);
+			setDAC();
 			}
 			
 			else if(event_cnt==t1)
 			{
 				
-			setDAC(0,chan);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
+			prepareSetDAC(0,chan);
+			setDAC();
 			}
 			else if(event_cnt==dT)
 			{		
-			setDAC(y16,chan);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
+			prepareSetDAC(ref16,chan);
+			setDAC();
 		
 			}
 			else if(event_cnt==(dT+1))
@@ -354,10 +354,9 @@ ISR(TIMER2_OVF_vect)
 			accum=0;
 			ADC_on=0;
 			accum_cnt=0;			
-			setDAC(0,chan);
-			setDAC(0,2);
-			PORTD&=~(1<<LDAC);
-			PORTD|=(1<<LDAC);
+			prepareSetDAC(0,chan);
+			prepareSetDAC(0,2);
+			setDAC();
 
 			}		
 
@@ -403,7 +402,7 @@ ISR(TIMER2_OVF_vect)
 		//PORTB=0b00011111;
 		//PORTD=0b11101100;
 					VAC16+=32;
-					if(VAC16>(y16-1))
+					if(VAC16>(ref16-1))
 					{
 					pos_phase=0;				
 					}
@@ -423,16 +422,15 @@ ISR(TIMER2_OVF_vect)
 				
 				
 				UDR0=VAC16>>4;
-				setDAC(VAC16,chan);
-				//setDAC(VAC16,1);
-				//setDAC(VAC16,2);
-				//setDAC(VAC16,3);
-				//setDAC(VAC16,4);
-				//setDAC(VAC16,5);
-				//setDAC(VAC16,6);
-				//setDAC(VAC16,7);				
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(VAC16,chan);
+				//prepareSetDAC(VAC16,1);
+				//prepareSetDAC(VAC16,2);
+				//prepareSetDAC(VAC16,3);
+				//prepareSetDAC(VAC16,4);
+				//prepareSetDAC(VAC16,5);
+				//prepareSetDAC(VAC16,6);
+				//prepareSetDAC(VAC16,7);				
+				setDAC();
 				
 			}
 						
@@ -490,21 +488,18 @@ ISR(TIMER2_OVF_vect)
 				if(PROGRAM_done)
 					prog_val=0;
 				
-				setDAC(prog_val,chan);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(prog_val,chan);
+				setDAC();
 			}			
 			else if(event_cnt==7)//t1
 			{
-				setDAC(0,chan);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(0,chan);
+				setDAC();
 			}
 			else if(event_cnt==9)//dT
 			{		
-				setDAC(y16,chan);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(ref16,chan);
+				setDAC();
 			}
 			else if(event_cnt==(9+1))
 				ADCSRA |= (1 << ADSC); 
@@ -515,9 +510,8 @@ ISR(TIMER2_OVF_vect)
 				ADC_on=0;
 				accum_cnt=0;
 				
-				setDAC(0,chan);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(0,chan);
+				setDAC();
 			}
 		}
 		else if(MD == ONE_SHOT)
@@ -529,17 +523,15 @@ ISR(TIMER2_OVF_vect)
 			}//сброс
 			else if(event_cnt==1)
 			{
-				setDAC(120<<4,3);
-				setDAC(120<<4,2);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(unset16,3);
+				prepareSetDAC(unset16,2);
+				setDAC();
 			}
 			else if(event_cnt==2)
 			{
-				setDAC(0,3);
-				setDAC(0,2);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(0,3);
+				prepareSetDAC(0,2);
+				setDAC();
 			}		//reseted		
 			else if(event_cnt==3)
 			{
@@ -547,15 +539,13 @@ ISR(TIMER2_OVF_vect)
 			}
 			else if(event_cnt==4)
 			{
-				setDAC(x16,3);				
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(x16,3);				
+				setDAC();
 			}		
 			else if(event_cnt==5)
 			{
-				setDAC(0,3);				
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(0,3);				
+				setDAC();
 			}	//пнули		
 				//посмотрим, что вышло
 			else if(event_cnt==6)
@@ -565,15 +555,13 @@ ISR(TIMER2_OVF_vect)
 			}			
 			else if(event_cnt==7)
 			{
-				setDAC(y16,3);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
-				
+				prepareSetDAC(ref16,3);
+				setDAC();				
 				ADCSRA |= (1 << ADSC); 
 			}	
 			else if(event_cnt==9)
 			{
-				//setDAC(y16,3);
+				//prepareSetDAC(ref16,3);
 				ADCL_=ADCL;	
 				ADCH_=ADCH;
 				UDR0=ADCL_;
@@ -582,16 +570,14 @@ ISR(TIMER2_OVF_vect)
 			{
 				UDR0=ADCH_; 
 				
-				setDAC(0,3);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(0,3);
+				setDAC();
 			}		
 			//3й просмотрен
 			else if(event_cnt==11)
 			{				 
-				setDAC(y16,2);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(ref16,2);
+				setDAC();
 				
 				ADCSRA |= (1 << ADSC); 
 			}
@@ -605,9 +591,8 @@ ISR(TIMER2_OVF_vect)
 			{
 				UDR0=ADCH_; 
 				
-				setDAC(0,2);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(0,2);
+				setDAC();
 			}
 			
 		}
@@ -618,16 +603,14 @@ ISR(TIMER2_OVF_vect)
 			//unset
 			if(event_cnt==0)
 			{
-				setDAC(z16, chan);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(unset16, chan);
+				setDAC();
 				UDR0=255;
 			}
 			else if(event_cnt==1)
 			{
-				setDAC(0, chan);				
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(0, chan);				
+				setDAC();
 			}
 			//create set impulse
 			else if(event_cnt==3)
@@ -652,12 +635,11 @@ ISR(TIMER2_OVF_vect)
 				{
 					STAT_V_step=4;
 				}////////////						
-				//setDAC(x16, chan);
+				//prepareSetDAC(x16, chan);
 				UDR0=STAT_V_step;
-				x16_grad = (-(STAT_V_step+1)*16 )<<4;
-				setDAC(x16_grad, chan);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				x16_grad = (-(STAT_V_step+1)*8 )<<4;//16
+				prepareSetDAC(x16_grad, chan);
+				setDAC();
 				
 				
 				if(an_cnt_fast<(STAT_N))//20 us
@@ -669,8 +651,7 @@ ISR(TIMER2_OVF_vect)
 					STAT_dt_step=1;
 					for(int i=0;i<40;i++)//28
 					{
-					PORTD&=~(1<<LDAC);
-					PORTD|=(1<<LDAC);
+					setDAC();
 					}
 				}
 				else if(an_cnt_fast<(STAT_N*3))//220 us
@@ -678,8 +659,7 @@ ISR(TIMER2_OVF_vect)
 					STAT_dt_step=2;
 					for(int i=0;i<160;i++)
 					{
-					PORTD&=~(1<<LDAC);
-					PORTD|=(1<<LDAC);
+					setDAC();
 					}
 				}
 				else if(an_cnt_fast<(STAT_N*4))//900 us
@@ -687,8 +667,7 @@ ISR(TIMER2_OVF_vect)
 					STAT_dt_step=3;
 					for(int i=0;i<640;i++)
 					{
-					PORTD&=~(1<<LDAC);
-					PORTD|=(1<<LDAC);
+					setDAC();
 					}
 				}
 				else if(an_cnt_fast<(BIG_STAT_N))//3.5 ms
@@ -696,15 +675,13 @@ ISR(TIMER2_OVF_vect)
 					STAT_dt_step=4;
 					for(int i=0;i<2560;i++)
 					{
-					PORTD&=~(1<<LDAC);
-					PORTD|=(1<<LDAC);
+					setDAC();
 					}
 				}////////////////
 									
 				
-				resetDAC(chan);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);				
+				prepareResetDAC(chan);
+				setDAC();			
 				
 				an_cnt++; // upper				
 				if(an_cnt>(BIG_STAT_N*5)) an_cnt=0; // lower
@@ -714,23 +691,20 @@ ISR(TIMER2_OVF_vect)
 			else if(event_cnt==4)
 			{
 				UDR0=STAT_dt_step;
-				setDAC(0, chan);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(0, chan);
+				setDAC();
 			}
 			else if(event_cnt==6)//start measure
 			{
-				setDAC(y16, chan);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(ref16, chan);
+				setDAC();
 				ADCSRA |= (1 << ADSC); 
 				
 			}
 			else if(event_cnt==7)
 			{
-				setDAC(0, chan);
-				PORTD&=~(1<<LDAC);
-				PORTD|=(1<<LDAC);
+				prepareSetDAC(0, chan);
+				setDAC();
 				
 				ADCL_=ADCL;	
 				ADCH_=ADCH;
@@ -793,14 +767,15 @@ ISR(USART_RX_vect)
 			prog_val=0;
 		}
 		break;
-		case 2:
-		x16=UDR0<<4;
+		case 2:		
+		x16_simple = UDR0;
+		x16 = x16_simple<<4;
 		break;
 		case 3:	
-		y16=UDR0<<4;
+		ref16=UDR0<<4;
 		break;
 		case 4:
-		z16=UDR0<<4;
+		unset16=UDR0<<4;
 		break;		
 		case 5:
 		t2=UDR0;

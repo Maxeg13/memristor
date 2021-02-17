@@ -8,8 +8,8 @@ QT       += core gui
 QT += serialport
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-INCLUDEPATH += C:/Qt/qwt-6.1.2/include
-LIBS += -LC:/Qt/qwt-6.1.2/lib -lqwt
+INCLUDEPATH += C:/qwt-6.1.2/include
+LIBS += -LC:/qwt-6.1.2/lib -lqwt
 
 TARGET = mem_prog
 TEMPLATE = app
