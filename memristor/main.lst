@@ -1452,7 +1452,7 @@
  1486 08c2 8330      		cpi r24,lo8(3)
  1487 08c4 01F0      		breq .+2
  1488 08c6 00C0      		rjmp .L120
- 1489 08c8 00C0      		rjmp .L137
+ 1489 08c8 00C0      		rjmp .L138
  1490               	.L131:
  1491 08ca 8730      		cpi r24,lo8(7)
  1492 08cc 01F4      		brne .+2
@@ -1465,7 +1465,7 @@
  1499 08da 8630      		cpi r24,lo8(6)
  1500 08dc 01F0      		breq .+2
  1501 08de 00C0      		rjmp .L120
- 1502 08e0 00C0      		rjmp .L138
+ 1502 08e0 00C0      		rjmp .L139
  1503               	.L132:
  1504 08e2 8830      		cpi r24,lo8(8)
  1505 08e4 01F4      		brne .+2
@@ -1473,7 +1473,7 @@
  1507 08e8 8930      		cpi r24,lo8(9)
  1508 08ea 01F0      		breq .+2
  1509 08ec 00C0      		rjmp .L120
- 1510 08ee 00C0      		rjmp .L139
+ 1510 08ee 00C0      		rjmp .L140
  1511               	.L121:
  1512               	.LM284:
  1513 08f0 8091 C600 		lds r24,198
@@ -1534,7 +1534,7 @@
  1568 095e 9093 0000 		sts (x16)+1,r25
  1569 0962 8093 0000 		sts x16,r24
  1570 0966 00C0      		rjmp .L120
- 1571               	.L137:
+ 1571               	.L138:
  1572               	.LM297:
  1573 0968 8091 C600 		lds r24,198
  1574 096c 90E0      		ldi r25,lo8(0)
@@ -1548,290 +1548,299 @@
  1582 0980 00C0      		rjmp .L120
  1583               	.L125:
  1584               	.LM298:
- 1585 0982 8091 C600 		lds r24,198
- 1586 0986 90E0      		ldi r25,lo8(0)
- 1587 0988 24E0      		ldi r18,4
- 1588 098a 880F      	1:	lsl r24
- 1589 098c 991F      		rol r25
- 1590 098e 2A95      		dec r18
- 1591 0990 01F4      		brne 1b
- 1592 0992 9093 0000 		sts (unset16)+1,r25
- 1593 0996 8093 0000 		sts unset16,r24
- 1594 099a 00C0      		rjmp .L120
- 1595               	.L126:
- 1596               	.LM299:
- 1597 099c 8091 C600 		lds r24,198
- 1598 09a0 8093 0000 		sts t2,r24
- 1599 09a4 00C0      		rjmp .L120
- 1600               	.L138:
- 1601               	.LM300:
- 1602 09a6 8091 C600 		lds r24,198
- 1603 09aa 8093 0000 		sts dT,r24
- 1604 09ae 00C0      		rjmp .L120
- 1605               	.L128:
- 1606               	.LM301:
- 1607 09b0 8091 C600 		lds r24,198
- 1608 09b4 8093 0000 		sts T,r24
- 1609 09b8 00C0      		rjmp .L120
- 1610               	.L129:
- 1611               	.LM302:
- 1612 09ba 8091 C600 		lds r24,198
- 1613 09be 8093 0000 		sts chan,r24
- 1614 09c2 00C0      		rjmp .L120
- 1615               	.L139:
- 1616               	.LM303:
- 1617 09c4 8091 C600 		lds r24,198
- 1618 09c8 E091 0000 		lds r30,chan
- 1619 09cc F0E0      		ldi r31,lo8(0)
- 1620 09ce E050      		subi r30,lo8(-(reverted))
- 1621 09d0 F040      		sbci r31,hi8(-(reverted))
- 1622 09d2 8083      		st Z,r24
- 1623               	.LM304:
- 1624 09d4 1092 0000 		sts (event_cnt)+1,__zero_reg__
- 1625 09d8 1092 0000 		sts event_cnt,__zero_reg__
- 1626               	.LM305:
- 1627 09dc 8091 0000 		lds r24,MD
- 1628 09e0 8330      		cpi r24,lo8(3)
- 1629 09e2 01F4      		brne .L135
- 1630               	.LM306:
- 1631 09e4 0E94 0000 		call gatherMult
- 1632 09e8 00C0      		rjmp .L120
- 1633               	.L135:
- 1634               	.LM307:
- 1635 09ea 8430      		cpi r24,lo8(4)
- 1636 09ec 01F4      		brne .L120
- 1637               	.LM308:
- 1638 09ee 0E94 0000 		call separMult
- 1639               	.L120:
- 1640               	.LM309:
- 1641 09f2 8091 0000 		lds r24,t2
- 1642 09f6 9091 0000 		lds r25,dT
- 1643 09fa 890F      		add r24,r25
- 1644 09fc 8093 0000 		sts dTt2,r24
- 1645               	.LM310:
- 1646 0a00 8091 0000 		lds r24,ptr
- 1647 0a04 8F5F      		subi r24,lo8(-(1))
- 1648 0a06 6AE0      		ldi r22,lo8(10)
- 1649 0a08 0E94 0000 		call __udivmodqi4
- 1650 0a0c 9093 0000 		sts ptr,r25
- 1651               	/* epilogue start */
- 1652               	.LM311:
- 1653 0a10 FF91      		pop r31
- 1654 0a12 EF91      		pop r30
- 1655 0a14 BF91      		pop r27
- 1656 0a16 AF91      		pop r26
- 1657 0a18 9F91      		pop r25
- 1658 0a1a 8F91      		pop r24
- 1659 0a1c 7F91      		pop r23
- 1660 0a1e 6F91      		pop r22
- 1661 0a20 5F91      		pop r21
- 1662 0a22 4F91      		pop r20
- 1663 0a24 3F91      		pop r19
- 1664 0a26 2F91      		pop r18
- 1665 0a28 0F90      		pop r0
- 1666 0a2a 0FBE      		out __SREG__,r0
- 1667 0a2c 0F90      		pop r0
- 1668 0a2e 1F90      		pop __zero_reg__
- 1669 0a30 1895      		reti
- 1670               	.LFE19:
- 1672               	.global	MD
- 1673               	.global	MD
- 1674               		.section .bss
- 1677               	MD:
- 1678 0000 00        		.skip 1,0
- 1679               	.global	STAT_N
- 1680               		.data
- 1683               	STAT_N:
- 1684 0000 0E        		.byte	14
- 1685               	.global	STAT_CYCLE
- 1688               	STAT_CYCLE:
- 1689 0001 05        		.byte	5
- 1690               	.global	chan_addrs
- 1693               	chan_addrs:
- 1694 0002 00        		.byte	0
- 1695 0003 01        		.byte	1
- 1696 0004 02        		.byte	2
- 1697 0005 03        		.byte	3
- 1698 0006 07        		.byte	7
- 1699 0007 06        		.byte	6
- 1700 0008 05        		.byte	5
- 1701 0009 04        		.byte	4
- 1702               	.global	VAC16
- 1703               	.global	VAC16
- 1704               		.section .bss
- 1707               	VAC16:
- 1708 0001 0000      		.skip 2,0
- 1709               	.global	VAC16_H
- 1710               	.global	VAC16_H
- 1713               	VAC16_H:
- 1714 0003 0000      		.skip 2,0
- 1715               	.global	VAC16_HH
- 1716               	.global	VAC16_HH
- 1719               	VAC16_HH:
- 1720 0005 0000      		.skip 2,0
- 1721               	.global	prog_val
- 1722               	.global	prog_val
- 1725               	prog_val:
- 1726 0007 0000      		.skip 2,0
- 1727               	.global	x16
- 1728               	.global	x16
- 1731               	x16:
- 1732 0009 0000      		.skip 2,0
- 1733               	.global	ref16
- 1734               	.global	ref16
- 1737               	ref16:
- 1738 000b 0000      		.skip 2,0
- 1739               	.global	unset16
- 1740               	.global	unset16
- 1743               	unset16:
- 1744 000d 0000      		.skip 2,0
- 1745               	.global	sync
- 1746               	.global	sync
- 1749               	sync:
- 1750 000f 00        		.skip 1,0
- 1751               	.global	t1
- 1752               		.data
- 1755               	t1:
- 1756 000a 02        		.byte	2
- 1757               	.global	t2
- 1760               	t2:
- 1761 000b 02        		.byte	2
- 1762               	.global	dTt2
- 1765               	dTt2:
- 1766 000c 0A        		.byte	10
- 1767               	.global	pos_phase
- 1770               	pos_phase:
- 1771 000d 01        		.byte	1
- 1772               	.global	STAT_dt_step
- 1773               	.global	STAT_dt_step
- 1774               		.section .bss
- 1777               	STAT_dt_step:
- 1778 0010 00        		.skip 1,0
- 1779               	.global	STAT_V_step
- 1780               	.global	STAT_V_step
- 1783               	STAT_V_step:
- 1784 0011 00        		.skip 1,0
- 1785               	.global	ptr
- 1786               	.global	ptr
- 1789               	ptr:
- 1790 0012 00        		.skip 1,0
- 1791               	.global	PROGRAM_done
- 1792               	.global	PROGRAM_done
- 1795               	PROGRAM_done:
- 1796 0013 00        		.skip 1,0
- 1797               	.global	chan
- 1798               	.global	chan
- 1801               	chan:
- 1802 0014 00        		.skip 1,0
- 1803               	.global	an_cnt
- 1804               	.global	an_cnt
- 1807               	an_cnt:
- 1808 0015 0000      		.skip 2,0
- 1809               	.global	an_cnt_fast
- 1810               	.global	an_cnt_fast
- 1813               	an_cnt_fast:
- 1814 0017 0000      		.skip 2,0
- 1815               	.global	reverted
- 1816               	.global	reverted
- 1819               	reverted:
- 1820 0019 0000 0000 		.skip 8,0
- 1820      0000 0000 
- 1821               	.global	time_step
- 1822               		.data
- 1825               	time_step:
- 1826 000e 0600      		.word	6
- 1827               	.global	eventN
- 1830               	eventN:
- 1831 0010 6400      		.word	100
- 1832               		.lcomm adc_h.1506,2
- 1833               		.lcomm i.1500,2
- 1834               		.comm BIG_STAT_N,1,1
- 1835               		.comm x16_grad,2,1
- 1836               		.comm x16_simple,2,1
- 1837               		.comm dT,1,1
- 1838               		.comm T,1,1
- 1839               		.comm send8,1,1
- 1840               		.comm UDP_cnt,1,1
- 1841               		.comm c,1,1
- 1842               		.comm ADC_on,1,1
- 1843               		.comm _adc,2,1
- 1844               		.comm ctr,2,1
- 1845               		.comm accum,2,1
- 1846               		.comm event_cnt,2,1
- 1847               		.comm ADC_cnt,2,1
- 1848               		.comm ADCH_,1,1
- 1849               		.comm ADCL_,1,1
- 1850               		.comm ADCH__,1,1
- 1851               		.comm ADCL__,1,1
- 1852               		.comm accum_cnt,1,1
- 1981               	.Letext0:
+ 1585 0982 8091 0000 		lds r24,MD
+ 1586 0986 8230      		cpi r24,lo8(2)
+ 1587 0988 01F4      		brne .L135
+ 1588               	.LM299:
+ 1589 098a 8091 C600 		lds r24,198
+ 1590 098e 8093 0000 		sts t1,r24
+ 1591 0992 00C0      		rjmp .L120
+ 1592               	.L135:
+ 1593               	.LM300:
+ 1594 0994 8091 C600 		lds r24,198
+ 1595 0998 90E0      		ldi r25,lo8(0)
+ 1596 099a 24E0      		ldi r18,4
+ 1597 099c 880F      	1:	lsl r24
+ 1598 099e 991F      		rol r25
+ 1599 09a0 2A95      		dec r18
+ 1600 09a2 01F4      		brne 1b
+ 1601 09a4 9093 0000 		sts (unset16)+1,r25
+ 1602 09a8 8093 0000 		sts unset16,r24
+ 1603 09ac 00C0      		rjmp .L120
+ 1604               	.L126:
+ 1605               	.LM301:
+ 1606 09ae 8091 C600 		lds r24,198
+ 1607 09b2 8093 0000 		sts t2,r24
+ 1608 09b6 00C0      		rjmp .L120
+ 1609               	.L139:
+ 1610               	.LM302:
+ 1611 09b8 8091 C600 		lds r24,198
+ 1612 09bc 8093 0000 		sts dT,r24
+ 1613 09c0 00C0      		rjmp .L120
+ 1614               	.L128:
+ 1615               	.LM303:
+ 1616 09c2 8091 C600 		lds r24,198
+ 1617 09c6 8093 0000 		sts T,r24
+ 1618 09ca 00C0      		rjmp .L120
+ 1619               	.L129:
+ 1620               	.LM304:
+ 1621 09cc 8091 C600 		lds r24,198
+ 1622 09d0 8093 0000 		sts chan,r24
+ 1623 09d4 00C0      		rjmp .L120
+ 1624               	.L140:
+ 1625               	.LM305:
+ 1626 09d6 8091 C600 		lds r24,198
+ 1627 09da E091 0000 		lds r30,chan
+ 1628 09de F0E0      		ldi r31,lo8(0)
+ 1629 09e0 E050      		subi r30,lo8(-(reverted))
+ 1630 09e2 F040      		sbci r31,hi8(-(reverted))
+ 1631 09e4 8083      		st Z,r24
+ 1632               	.LM306:
+ 1633 09e6 1092 0000 		sts (event_cnt)+1,__zero_reg__
+ 1634 09ea 1092 0000 		sts event_cnt,__zero_reg__
+ 1635               	.LM307:
+ 1636 09ee 8091 0000 		lds r24,MD
+ 1637 09f2 8330      		cpi r24,lo8(3)
+ 1638 09f4 01F4      		brne .L136
+ 1639               	.LM308:
+ 1640 09f6 0E94 0000 		call gatherMult
+ 1641 09fa 00C0      		rjmp .L120
+ 1642               	.L136:
+ 1643               	.LM309:
+ 1644 09fc 8430      		cpi r24,lo8(4)
+ 1645 09fe 01F4      		brne .L120
+ 1646               	.LM310:
+ 1647 0a00 0E94 0000 		call separMult
+ 1648               	.L120:
+ 1649               	.LM311:
+ 1650 0a04 8091 0000 		lds r24,t2
+ 1651 0a08 9091 0000 		lds r25,dT
+ 1652 0a0c 890F      		add r24,r25
+ 1653 0a0e 8093 0000 		sts dTt2,r24
+ 1654               	.LM312:
+ 1655 0a12 8091 0000 		lds r24,ptr
+ 1656 0a16 8F5F      		subi r24,lo8(-(1))
+ 1657 0a18 6AE0      		ldi r22,lo8(10)
+ 1658 0a1a 0E94 0000 		call __udivmodqi4
+ 1659 0a1e 9093 0000 		sts ptr,r25
+ 1660               	/* epilogue start */
+ 1661               	.LM313:
+ 1662 0a22 FF91      		pop r31
+ 1663 0a24 EF91      		pop r30
+ 1664 0a26 BF91      		pop r27
+ 1665 0a28 AF91      		pop r26
+ 1666 0a2a 9F91      		pop r25
+ 1667 0a2c 8F91      		pop r24
+ 1668 0a2e 7F91      		pop r23
+ 1669 0a30 6F91      		pop r22
+ 1670 0a32 5F91      		pop r21
+ 1671 0a34 4F91      		pop r20
+ 1672 0a36 3F91      		pop r19
+ 1673 0a38 2F91      		pop r18
+ 1674 0a3a 0F90      		pop r0
+ 1675 0a3c 0FBE      		out __SREG__,r0
+ 1676 0a3e 0F90      		pop r0
+ 1677 0a40 1F90      		pop __zero_reg__
+ 1678 0a42 1895      		reti
+ 1679               	.LFE19:
+ 1681               	.global	MD
+ 1682               	.global	MD
+ 1683               		.section .bss
+ 1686               	MD:
+ 1687 0000 00        		.skip 1,0
+ 1688               	.global	STAT_N
+ 1689               		.data
+ 1692               	STAT_N:
+ 1693 0000 0E        		.byte	14
+ 1694               	.global	STAT_CYCLE
+ 1697               	STAT_CYCLE:
+ 1698 0001 05        		.byte	5
+ 1699               	.global	chan_addrs
+ 1702               	chan_addrs:
+ 1703 0002 00        		.byte	0
+ 1704 0003 01        		.byte	1
+ 1705 0004 02        		.byte	2
+ 1706 0005 03        		.byte	3
+ 1707 0006 07        		.byte	7
+ 1708 0007 06        		.byte	6
+ 1709 0008 05        		.byte	5
+ 1710 0009 04        		.byte	4
+ 1711               	.global	VAC16
+ 1712               	.global	VAC16
+ 1713               		.section .bss
+ 1716               	VAC16:
+ 1717 0001 0000      		.skip 2,0
+ 1718               	.global	VAC16_H
+ 1719               	.global	VAC16_H
+ 1722               	VAC16_H:
+ 1723 0003 0000      		.skip 2,0
+ 1724               	.global	VAC16_HH
+ 1725               	.global	VAC16_HH
+ 1728               	VAC16_HH:
+ 1729 0005 0000      		.skip 2,0
+ 1730               	.global	prog_val
+ 1731               	.global	prog_val
+ 1734               	prog_val:
+ 1735 0007 0000      		.skip 2,0
+ 1736               	.global	x16
+ 1737               	.global	x16
+ 1740               	x16:
+ 1741 0009 0000      		.skip 2,0
+ 1742               	.global	ref16
+ 1743               	.global	ref16
+ 1746               	ref16:
+ 1747 000b 0000      		.skip 2,0
+ 1748               	.global	unset16
+ 1749               	.global	unset16
+ 1752               	unset16:
+ 1753 000d 0000      		.skip 2,0
+ 1754               	.global	sync
+ 1755               	.global	sync
+ 1758               	sync:
+ 1759 000f 00        		.skip 1,0
+ 1760               	.global	t1
+ 1761               		.data
+ 1764               	t1:
+ 1765 000a 02        		.byte	2
+ 1766               	.global	t2
+ 1769               	t2:
+ 1770 000b 02        		.byte	2
+ 1771               	.global	dTt2
+ 1774               	dTt2:
+ 1775 000c 0A        		.byte	10
+ 1776               	.global	pos_phase
+ 1779               	pos_phase:
+ 1780 000d 01        		.byte	1
+ 1781               	.global	STAT_dt_step
+ 1782               	.global	STAT_dt_step
+ 1783               		.section .bss
+ 1786               	STAT_dt_step:
+ 1787 0010 00        		.skip 1,0
+ 1788               	.global	STAT_V_step
+ 1789               	.global	STAT_V_step
+ 1792               	STAT_V_step:
+ 1793 0011 00        		.skip 1,0
+ 1794               	.global	ptr
+ 1795               	.global	ptr
+ 1798               	ptr:
+ 1799 0012 00        		.skip 1,0
+ 1800               	.global	PROGRAM_done
+ 1801               	.global	PROGRAM_done
+ 1804               	PROGRAM_done:
+ 1805 0013 00        		.skip 1,0
+ 1806               	.global	chan
+ 1807               	.global	chan
+ 1810               	chan:
+ 1811 0014 00        		.skip 1,0
+ 1812               	.global	an_cnt
+ 1813               	.global	an_cnt
+ 1816               	an_cnt:
+ 1817 0015 0000      		.skip 2,0
+ 1818               	.global	an_cnt_fast
+ 1819               	.global	an_cnt_fast
+ 1822               	an_cnt_fast:
+ 1823 0017 0000      		.skip 2,0
+ 1824               	.global	reverted
+ 1825               	.global	reverted
+ 1828               	reverted:
+ 1829 0019 0000 0000 		.skip 8,0
+ 1829      0000 0000 
+ 1830               	.global	time_step
+ 1831               		.data
+ 1834               	time_step:
+ 1835 000e 0600      		.word	6
+ 1836               	.global	eventN
+ 1839               	eventN:
+ 1840 0010 6400      		.word	100
+ 1841               		.lcomm adc_h.1506,2
+ 1842               		.lcomm i.1500,2
+ 1843               		.comm BIG_STAT_N,1,1
+ 1844               		.comm x16_grad,2,1
+ 1845               		.comm x16_simple,2,1
+ 1846               		.comm dT,1,1
+ 1847               		.comm T,1,1
+ 1848               		.comm send8,1,1
+ 1849               		.comm UDP_cnt,1,1
+ 1850               		.comm c,1,1
+ 1851               		.comm ADC_on,1,1
+ 1852               		.comm _adc,2,1
+ 1853               		.comm ctr,2,1
+ 1854               		.comm accum,2,1
+ 1855               		.comm event_cnt,2,1
+ 1856               		.comm ADC_cnt,2,1
+ 1857               		.comm ADCH_,1,1
+ 1858               		.comm ADCL_,1,1
+ 1859               		.comm ADCH__,1,1
+ 1860               		.comm ADCL__,1,1
+ 1861               		.comm accum_cnt,1,1
+ 1990               	.Letext0:
 DEFINED SYMBOLS
                             *ABS*:00000000 main.c
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:2      *ABS*:0000003f __SREG__
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:3      *ABS*:0000003e __SP_H__
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:4      *ABS*:0000003d __SP_L__
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:5      *ABS*:00000034 __CCP__
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:6      *ABS*:00000000 __tmp_reg__
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:7      *ABS*:00000001 __zero_reg__
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:18     .text:00000000 ADC_Init
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:42     .text:00000016 timer_init
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:67     .text:0000002e uart_init
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:92     .text:00000044 SPI_MasterInit
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:110    .text:0000004e gatherMult
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:138    .text:00000060 separMult
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:166    .text:00000072 SPI_WriteByte
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:186    .text:0000007c prepareResetDAC
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1693   .data:00000002 chan_addrs
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:221    .text:000000a0 prepareSetDAC
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:2      *ABS*:0000003f __SREG__
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:3      *ABS*:0000003e __SP_H__
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:4      *ABS*:0000003d __SP_L__
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:5      *ABS*:00000034 __CCP__
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:6      *ABS*:00000000 __tmp_reg__
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:7      *ABS*:00000001 __zero_reg__
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:18     .text:00000000 ADC_Init
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:42     .text:00000016 timer_init
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:67     .text:0000002e uart_init
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:92     .text:00000044 SPI_MasterInit
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:110    .text:0000004e gatherMult
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:138    .text:00000060 separMult
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:166    .text:00000072 SPI_WriteByte
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:186    .text:0000007c prepareResetDAC
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1702   .data:00000002 chan_addrs
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:221    .text:000000a0 prepareSetDAC
                             *COM*:00000001 send8
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:279    .text:000000ea set_reverser
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:292    .text:000000ec setDAC
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:308    .text:000000f2 main
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1688   .data:00000001 STAT_CYCLE
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1683   .data:00000000 STAT_N
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:279    .text:000000ea set_reverser
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:292    .text:000000ec setDAC
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:308    .text:000000f2 main
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1697   .data:00000001 STAT_CYCLE
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1692   .data:00000000 STAT_N
                             *COM*:00000001 BIG_STAT_N
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:443    .text:000001a4 __vector_9
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:443    .text:000001a4 __vector_9
                             *COM*:00000002 ctr
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1825   .data:0000000e time_step
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1677   .bss:00000000 MD
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1834   .data:0000000e time_step
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1686   .bss:00000000 MD
                             *COM*:00000002 event_cnt
                             *COM*:00000001 ADCL_
                             *COM*:00000001 ADCH_
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1731   .bss:00000009 x16
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1801   .bss:00000014 chan
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1755   .data:0000000a t1
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1740   .bss:00000009 x16
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1810   .bss:00000014 chan
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1764   .data:0000000a t1
                             *COM*:00000001 dT
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1765   .data:0000000c dTt2
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1774   .data:0000000c dTt2
                             *COM*:00000002 _adc
                             *COM*:00000002 accum
                             *COM*:00000001 ADC_on
                             *COM*:00000001 accum_cnt
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1832   .bss:00000023 i.1500
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1841   .bss:00000023 i.1500
                             *COM*:00000001 UDP_cnt
                             *COM*:00000001 ADCL__
                             *COM*:00000001 ADCH__
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1707   .bss:00000001 VAC16
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1713   .bss:00000003 VAC16_H
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1770   .data:0000000d pos_phase
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1737   .bss:0000000b ref16
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1716   .bss:00000001 VAC16
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1722   .bss:00000003 VAC16_H
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1779   .data:0000000d pos_phase
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1746   .bss:0000000b ref16
                             *COM*:00000001 T
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1795   .bss:00000013 PROGRAM_done
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1804   .bss:00000013 PROGRAM_done
                              .bss:00000021 adc_h.1506
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1725   .bss:00000007 prog_val
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1760   .data:0000000b t2
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1743   .bss:0000000d unset16
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1807   .bss:00000015 an_cnt
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1783   .bss:00000011 STAT_V_step
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1734   .bss:00000007 prog_val
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1769   .data:0000000b t2
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1752   .bss:0000000d unset16
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1816   .bss:00000015 an_cnt
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1792   .bss:00000011 STAT_V_step
                             *COM*:00000002 x16_grad
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1813   .bss:00000017 an_cnt_fast
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1777   .bss:00000010 STAT_dt_step
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1450   .text:00000884 __vector_18
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1789   .bss:00000012 ptr
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1749   .bss:0000000f sync
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1822   .bss:00000017 an_cnt_fast
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1786   .bss:00000010 STAT_dt_step
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1450   .text:00000884 __vector_18
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1798   .bss:00000012 ptr
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1758   .bss:0000000f sync
                             *COM*:00000002 x16_simple
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1819   .bss:00000019 reverted
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1719   .bss:00000005 VAC16_HH
-C:\Users\DrPepper\AppData\Local\Temp/ccEJyKzk.s:1830   .data:00000010 eventN
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1828   .bss:00000019 reverted
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1728   .bss:00000005 VAC16_HH
+C:\Users\DrPepper\AppData\Local\Temp/ccUwH8ug.s:1839   .data:00000010 eventN
                             *COM*:00000001 c
                             *COM*:00000002 ADC_cnt
 

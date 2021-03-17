@@ -50,7 +50,7 @@ int16_t x16_simple;
 int16_t ref16=0;
 int16_t unset16=0;
 uint8_t sync=0;
-uint8_t t1=2;
+uint8_t t1=2;//useless
 uint8_t t2=2;
 uint8_t dTt2=10;
 uint8_t dT;
@@ -775,10 +775,16 @@ ISR(USART_RX_vect)
 		ref16=UDR0<<4;
 		break;
 		case 4:
-		unset16=UDR0<<4;
+		if(MD==PROGRAM)
+			t1=UDR0;
+		else
+			unset16=UDR0<<4;
 		break;		
 		case 5:
+		
 		t2=UDR0;
+	
+		
 		break;	
 		case 6:
 		dT=UDR0;

@@ -103,6 +103,7 @@ const int buf_N=30;
 char buf[buf_N];
 QTimer serial_get_timer;
 QTimer imit_timer;
+QTimer one_shot_timer;
 //int ;
 QString qstr;
 QSerialPort port;
@@ -124,7 +125,7 @@ MainWindow::MainWindow(QWidget *parent)
     //    qDebug()<<QString::number(1.2);
     //    QString file_name = "C:\\Users\\DrPepper\\Documents\\memristor\\stat.txt";
     file_rand_stat = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\rand_stat.txt"));
-//    file_rand_stat->open(QIODevice::WriteOnly);
+    //    file_rand_stat->open(QIODevice::WriteOnly);
 
     file_analyze = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\analyze.txt"));
     file_analyze->open(QIODevice::WriteOnly);
@@ -451,7 +452,9 @@ MainWindow::MainWindow(QWidget *parent)
     if(imitation_on)
         imit_timer.start();
     //prog_btn->set
+    one_shot_timer.setInterval(3);
 
+    connect(&one_shot_timer, SIGNAL(timeout()),this,SLOT(one_shot_btn_pressed()));
     connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     connect(&imit_timer,SIGNAL(timeout()),this,SLOT(setNewImg()));
 }
@@ -942,8 +945,17 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
     //    QString filename = "Data.txt";
     //    mapIV
+    static bool key1=0;
     switch(event->key())
     {
+    case Qt::Key_1:
+        key1=!key1;
+        if(key1)
+            one_shot_timer.start(20);
+        else
+            one_shot_timer.stop();
+        break;
+
     case Qt::Key_W:
 
         WriteFile("ShortCircuit");
