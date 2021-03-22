@@ -327,21 +327,21 @@ ISR(TIMER2_OVF_vect)
 			if(event_cnt==0)
 			{
 			UDR0=255;
-			prepareSetDAC(x16,chan);
-			prepareSetDAC(x16,2);
+			prepareSetDAC(0,chan);
+			//prepareSetDAC(x16,2);
 			setDAC();
 			}
 			
 			else if(event_cnt==t1)
 			{
 				
-			prepareSetDAC(0,chan);
-			setDAC();
+			//prepareSetDAC(0,chan);
+			//setDAC();
 			}
 			else if(event_cnt==dT)
 			{		
-			prepareSetDAC(ref16,chan);
-			setDAC();
+			//prepareSetDAC(0,chan);
+			//setDAC();
 		
 			}
 			else if(event_cnt==(dT+1))
@@ -354,9 +354,9 @@ ISR(TIMER2_OVF_vect)
 			accum=0;
 			ADC_on=0;
 			accum_cnt=0;			
-			prepareSetDAC(0,chan);
-			prepareSetDAC(0,2);
-			setDAC();
+			//prepareSetDAC(0,chan);
+			//prepareSetDAC(0,2);
+			//setDAC();
 
 			}		
 
@@ -753,13 +753,14 @@ ISR(USART_RX_vect)
 		else
 			sync=1;
 		break;
+		
+		
 		case 1:
 		MD=UDR0;
 		if(MD==VAC)
 			time_step=4;//5
 		else
-			time_step=6;//4
-		
+			time_step=6;//4		
 		if(MD==PROGRAM)
 		{
 			//PROGRAM_start=1;
@@ -767,6 +768,8 @@ ISR(USART_RX_vect)
 			prog_val=0;
 		}
 		break;
+		
+		
 		case 2:		
 		x16_simple = UDR0;
 		x16 = x16_simple<<4;

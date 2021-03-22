@@ -1,5 +1,7 @@
 //v1 , v2 are positive for VAC_mode (convert to -v1 and v2)
 //20 us to 3.5 ms , 1V to 5V
+
+//
 #include "mainwindow.h"
 #include <QtSerialPort>
 #include <QComboBox>
@@ -951,7 +953,7 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
     case Qt::Key_1:
         key1=!key1;
         if(key1)
-            one_shot_timer.start(20);
+            one_shot_timer.start(50);
         else
             one_shot_timer.stop();
         break;
@@ -1056,17 +1058,17 @@ void MainWindow::oneSend()
     port.write(&c,1);//5
 
     c=dT_le->text().toInt();
-    port.write(&c,1);
+    port.write(&c,1);//6
 
     c=T_le->text().toInt();
-    port.write(&c,1);
+    port.write(&c,1);//7
 
     c=chan;
-    port.write(&c,1);
+    port.write(&c,1);//8
 
     c=reverse_check->isChecked();
     reversed[chan]=reverse_check->isChecked();
-    port.write(&c,1);
+    port.write(&c,1);//9
 
 
 }
