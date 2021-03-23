@@ -693,7 +693,7 @@ void MainWindow::Serial_get()
                 if(write_check->isChecked())
                 {
                     QTextStream outStream(file_rand_stat);
-                    outStream << adch << "    "<<QString::number(data_adc[ind_c]*I_koef)<<endl ;
+                    outStream << adch << "    "<<QString::number(data_adc2[ind_c]*I_koef)<<endl ;
                 }
                 break;
 
