@@ -27,6 +27,7 @@ public:
     myCurve(int bufShowSize, vector<float> &dataH,QwtPlot* d_plotH,const QString &title,
             const QColor &color, const QColor &colorSymbol,int& ind_ch );
     myCurve(QwtPlot *d_plotH, QString title, QColor color);
+    void twoSignalsDrawing(float k, vector<float>& data1, vector<float>& data2, QwtPlotCurve*);
     void signalDrawing(float k);
     void pointDrawing(float , float);
     void set_Drawing(vector<float> &x, vector<float> &y, int i1=-1, int i2=-1);

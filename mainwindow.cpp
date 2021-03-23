@@ -57,7 +57,11 @@ QCheckBox* VAC_check;
 QCheckBox* write_check;
 QwtPlot *cur_plot, *set_plot;
 myCurve* curveADC;
+QwtPlotCurve  *curveADC2;
+//QwtPlot* ;
 int ind_c;
+int ind_c1;
+int ind_c2;
 QLabel* V_set_label;
 QLabel* V_pl_max_label;
 QLineEdit* serial_le;
@@ -94,8 +98,11 @@ float V1;
 float mvs[]={296, 480, 1020, 1960, 3000};
 float grid[]={10, 20 ,80, 100, 163};
 
+uint8_t ptr=0;
 QLabel *imit_label;
 vector<float> data_adc;
+vector<float> data_adc1;
+vector<float> data_adc2;
 QLabel* V_ref_label;
 vector<float> current;
 int current_ind;
@@ -124,6 +131,8 @@ QFile* file_analyze;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    mapIV.erase(mapIV.begin(),mapIV.end());
+    curveADC2=new QwtPlotCurve;
     //    qDebug()<<QString::number(1.2);
     //    QString file_name = "C:\\Users\\DrPepper\\Documents\\memristor\\stat.txt";
     file_rand_stat = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\rand_stat.txt"));
@@ -213,8 +222,10 @@ MainWindow::MainWindow(QWidget *parent)
     //    cur_plot->setAxisScale(QwtPlot::yLeft,-512*I_koef,512*I_koef);
     cur_plot->setAxisScale(QwtPlot::xBottom,0,bufShowSize);
     curveADC=new myCurve(bufShowSize,data_adc,cur_plot,"EMG",Qt::black,Qt::black,ind_c);
-
-
+    data_adc1.resize(bufShowSize);
+    ind_c1=0;
+    data_adc2.resize(bufShowSize);
+    ind_c2=0;
     //    QImage image("C:/Users/DrPepper/Documents/memristor/Scheme.png");
     //    QMovie *movie = new QMovie("./rezero.gif");
     QImage image("./Crossbar.jpg");
@@ -491,7 +502,7 @@ void MainWindow::COMInit()
 void MainWindow::Serial_get()
 {
     static QString adch;
-    static uint8_t ptr=0;
+
     static uint8_t buf1;
     uint16_t h;
     int a,b;
@@ -609,7 +620,7 @@ void MainWindow::Serial_get()
             case 0:
                 if((uint8_t)buf[i]!=255)
                 {
-                    //                    qDebug()<<"hello";
+
                     ptr=3;
                     ptr%=4;
                 }
@@ -627,38 +638,15 @@ void MainWindow::Serial_get()
                     prog_btn->setText("PROGRAM MODE: ...");
                 break;
             case 2:
-                //    (uint8_t)buf[i];
+
                 buf1=buf[i];
-                //                ind_c=(ind_c+1)%data_adc.size();
-                //    ind_p=ind_c;
-                //a=buf[i];
-                //b=buf1;
-                //            data_adc[ind_c]=((a<<8)+(b));//for -50  25500
-                //qDebug()<<a;
-                //qDebug()<<b;
-                //qDebug()<<'\n';
 
-                //                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
-                //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-                //                curveADC->signalDrawing(1);
-
-                //        buf1=buf[i];
                 break;
             case 3:
                 ind_c=(ind_c+1)%data_adc.size();
-                //    ind_p=ind_c;
-                //a=buf[i];
-                //b=buf1;
-                //            data_adc[ind_c]=((a<<8)+(b));//for -50  25500
-                //qDebug()<<a;
-                //qDebug()<<b;
-                //qDebug()<<'\n';
 
-                //                data_adc[ind_c]=256-(.01+(uint8_t)buf[i])-128;
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
-                //                if(!PROGRAM_done)
-                //                    qDebug()<<data_adc[ind_c];
-                //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
+
                 curveADC->signalDrawing(I_koef);
                 break;
 
@@ -680,46 +668,35 @@ void MainWindow::Serial_get()
                 break;
             case 1:
 
-                //                qDebug()<<buf1;
                 buf1=(uint8_t)buf[i];
-                //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
-                //                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
-                //                current_ind++;
-                //                current_ind%=current.size();
-
-
                 break;
             case 2:
                 //                //                qDebug()<<(uint16_t)buf[i];
-                ind_c=(ind_c+1)%data_adc.size();
-                data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                ind_c=(ind_c+1)%data_adc1.size();
+                data_adc1[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-                curveADC->signalDrawing(I_koef);
+                //                curveADC->signalDrawing(I_koef);
 
-                adch=QString::number(data_adc[ind_c]*I_koef);
+                adch=QString::number(data_adc1[ind_c]*I_koef);
                 break;
             case 3:
                 buf1=(uint8_t)buf[i];
-                //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
-                //                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
-                //                current_ind++;
-                //                current_ind%=current.size();
+
                 break;
             case 4:
 
-                ind_c=(ind_c+1)%data_adc.size();
-                data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+
+
+                data_adc2[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-                curveADC->signalDrawing(I_koef);
+                curveADC->twoSignalsDrawing(I_koef,data_adc1,data_adc2,curveADC2);
                 if(write_check->isChecked())
                 {
                     QTextStream outStream(file_rand_stat);
                     outStream << adch << "    "<<QString::number(data_adc[ind_c]*I_koef)<<endl ;
                 }
                 break;
-                //            DUMMY
-                //            case 2:
-                //                break;
+
             }
             ptr++;
             ptr%=5;
@@ -748,12 +725,8 @@ void MainWindow::Serial_get()
 
             case 3:
 
-                //                qDebug()<<buf1;
                 buf1=(uint8_t)buf[i];
-                //                current[current_ind]=(((((uint16_t)buf[i])<<8)|buf1));
-                //                current[current_ind]=256-(.01+(uint8_t)buf[i])-128;
-                //                current_ind++;
-                //                current_ind%=current.size();
+
 
 
                 break;
@@ -776,11 +749,7 @@ void MainWindow::Serial_get()
             ptr%=5;
 
         }
-
     }
-    //        qDebug()<<current_ind<<voltage_ind;
-    //    qDebug()<<N;
-
 }
 
 void MainWindow::custom_btn_pressed()
@@ -823,7 +792,8 @@ void MainWindow::rest_btn_pressed()
 
     port.write(&c,1);
 
-    c=V_unset_slider->value();
+    //    c=V_unset_slider->value();
+    c=0;
     port.write(&c,1);
 
 
@@ -853,12 +823,14 @@ void MainWindow::gather_mult_btn_pressed()
 
 void MainWindow::separ_mult_btn_pressed()
 {
+    ptr=0;
     MD=SEPAR_MULT;
     oneSend();
 }
 
 void MainWindow::one_shot_btn_pressed()
 {
+    ptr=0;
     MD = ONE_SHOT;
     oneSend();
 }
@@ -913,6 +885,7 @@ void MainWindow::VAC_check_changed()
 
 void MainWindow::vac_btn_pressed()
 {
+    ptr=0;
     set_plot->setAxisAutoScale(QwtPlot::xBottom,1);
     set_plot->setAxisAutoScale(QwtPlot::xTop,1);
     set_plot->setAxisAutoScale(QwtPlot::yLeft,1);
