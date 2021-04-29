@@ -142,7 +142,7 @@ MainWindow::MainWindow(QWidget *parent)
     file_analyze->open(QIODevice::WriteOnly);
 
 
-    ReadFile("ShortCircuit", mapIV);
+//    ReadFile("ShortCircuit", mapIV);
     //qDebug()<<QString("1:34").split(":")[1];
     voltage.resize(VAC_buf);
     current.resize(VAC_buf);

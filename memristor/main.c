@@ -1,5 +1,5 @@
 //#NEW PINOUT WITH MULTIPLEXING
-
+// enum chans? (for code reading)
 
 
 #define F_CPU 16000000UL
@@ -31,6 +31,14 @@ typedef enum
 	ONE_SHOT,
 	ANALYZE
 } MODE;
+
+typedef enum
+{
+	CHAN_1,
+	CHAN_2,
+	CHAN_3,
+	CHAN_4
+} CHAN_I;
 
 //CUSTOM - ручной режим 
 //VAC - режим вольт-амперной характеристики
@@ -516,35 +524,35 @@ ISR(TIMER2_OVF_vect)
 		}
 		else if(MD == ONE_SHOT)
 		{
-			//готовим сброс
+			//готовим unset
 			if(event_cnt==0)
 			{
 				separMult();
-			}//сброс
+			}//unsetting
 			else if(event_cnt==1)
 			{
-				prepareSetDAC(unset16,3);
-				prepareSetDAC(unset16,2);
+				prepareSetDAC(unset16,CHAN_4);
+				prepareSetDAC(unset16,CHAN_3);
 				setDAC();
 			}
 			else if(event_cnt==2)
 			{
-				prepareSetDAC(0,3);
-				prepareSetDAC(0,2);
+				prepareSetDAC(0,CHAN_4);
+				prepareSetDAC(0,CHAN_3);
 				setDAC();
-			}		//reseted		
+			}		//is unset		
 			else if(event_cnt==3)
 			{
 				gatherMult();
 			}
 			else if(event_cnt==4)
 			{
-				prepareSetDAC(x16,3);				
+				prepareSetDAC(x16,CHAN_4);				
 				setDAC();
 			}		
 			else if(event_cnt==5)
 			{
-				prepareSetDAC(0,3);				
+				prepareSetDAC(0,CHAN_4);				
 				setDAC();
 			}	//пнули		
 				//посмотрим, что вышло
@@ -555,7 +563,7 @@ ISR(TIMER2_OVF_vect)
 			}			
 			else if(event_cnt==7)
 			{
-				prepareSetDAC(ref16,3);
+				prepareSetDAC(ref16,CHAN_4);
 				setDAC();				
 				ADCSRA |= (1 << ADSC); 
 			}	
@@ -570,13 +578,13 @@ ISR(TIMER2_OVF_vect)
 			{
 				UDR0=ADCH_; 
 				
-				prepareSetDAC(0,3);
+				prepareSetDAC(0,CHAN_4);
 				setDAC();
 			}		
-			//3й просмотрен
+			//4й просмотрен
 			else if(event_cnt==11)
 			{				 
-				prepareSetDAC(ref16,2);
+				prepareSetDAC(ref16,CHAN_3);
 				setDAC();
 				
 				ADCSRA |= (1 << ADSC); 
@@ -591,7 +599,7 @@ ISR(TIMER2_OVF_vect)
 			{
 				UDR0=ADCH_; 
 				
-				prepareSetDAC(0,2);
+				prepareSetDAC(0,CHAN_3);
 				setDAC();
 			}
 			

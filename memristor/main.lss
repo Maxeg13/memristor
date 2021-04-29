@@ -13,17 +13,17 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING
   4 .debug_pubnames 000002e4  00000000  00000000  00000bd2  2**0
                   CONTENTS, READONLY, DEBUGGING
-  5 .debug_info   000007a6  00000000  00000000  00000eb6  2**0
+  5 .debug_info   000007c8  00000000  00000000  00000eb6  2**0
                   CONTENTS, READONLY, DEBUGGING
-  6 .debug_abbrev 000001ee  00000000  00000000  0000165c  2**0
+  6 .debug_abbrev 000001fd  00000000  00000000  0000167e  2**0
                   CONTENTS, READONLY, DEBUGGING
-  7 .debug_line   00000a7d  00000000  00000000  0000184a  2**0
+  7 .debug_line   00000a7d  00000000  00000000  0000187b  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_frame  000000f0  00000000  00000000  000022c8  2**2
+  8 .debug_frame  000000f0  00000000  00000000  000022f8  2**2
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_str    0000028f  00000000  00000000  000023b8  2**0
+  9 .debug_str    000002ab  00000000  00000000  000023e8  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    0000010c  00000000  00000000  00002647  2**0
+ 10 .debug_loc    0000010c  00000000  00000000  00002693  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -1014,7 +1014,7 @@ void setDAC(){
  56e:	09 f0       	breq	.+2      	; 0x572 <__vector_9+0x328>
  570:	6c c0       	rjmp	.+216    	; 0x64a <__vector_9+0x400>
 		{
-			//готовим сброс
+			//готовим unset
 			if(event_cnt==0)
  572:	80 91 38 01 	lds	r24, 0x0138
  576:	90 91 39 01 	lds	r25, 0x0139
@@ -1022,18 +1022,18 @@ void setDAC(){
  57c:	79 f1       	breq	.+94     	; 0x5dc <__vector_9+0x392>
 			{
 				separMult();
-			}//сброс
+			}//unsetting
 			else if(event_cnt==1)
  57e:	81 30       	cpi	r24, 0x01	; 1
  580:	91 05       	cpc	r25, r1
  582:	61 f4       	brne	.+24     	; 0x59c <__vector_9+0x352>
 			{
-				prepareSetDAC(unset16,3);
+				prepareSetDAC(unset16,CHAN_4);
  584:	80 91 1f 01 	lds	r24, 0x011F
  588:	90 91 20 01 	lds	r25, 0x0120
  58c:	63 e0       	ldi	r22, 0x03	; 3
  58e:	0e 94 a3 00 	call	0x146	; 0x146 <prepareSetDAC>
-				prepareSetDAC(unset16,2);
+				prepareSetDAC(unset16,CHAN_3);
  592:	80 91 1f 01 	lds	r24, 0x011F
  596:	90 91 20 01 	lds	r25, 0x0120
  59a:	51 c0       	rjmp	.+162    	; 0x63e <__vector_9+0x3f4>
@@ -1044,15 +1044,15 @@ void setDAC(){
  59e:	91 05       	cpc	r25, r1
  5a0:	31 f4       	brne	.+12     	; 0x5ae <__vector_9+0x364>
 			{
-				prepareSetDAC(0,3);
+				prepareSetDAC(0,CHAN_4);
  5a2:	80 e0       	ldi	r24, 0x00	; 0
  5a4:	90 e0       	ldi	r25, 0x00	; 0
  5a6:	63 e0       	ldi	r22, 0x03	; 3
  5a8:	0e 94 a3 00 	call	0x146	; 0x146 <prepareSetDAC>
  5ac:	46 c0       	rjmp	.+140    	; 0x63a <__vector_9+0x3f0>
-				prepareSetDAC(0,2);
+				prepareSetDAC(0,CHAN_3);
 				setDAC();
-			}		//reseted		
+			}		//is unset		
 			else if(event_cnt==3)
  5ae:	83 30       	cpi	r24, 0x03	; 3
  5b0:	91 05       	cpc	r25, r1
@@ -1067,7 +1067,7 @@ void setDAC(){
  5bc:	91 05       	cpc	r25, r1
  5be:	29 f4       	brne	.+10     	; 0x5ca <__vector_9+0x380>
 			{
-				prepareSetDAC(x16,3);				
+				prepareSetDAC(x16,CHAN_4);				
  5c0:	80 91 1b 01 	lds	r24, 0x011B
  5c4:	90 91 1c 01 	lds	r25, 0x011C
  5c8:	22 c0       	rjmp	.+68     	; 0x60e <__vector_9+0x3c4>
@@ -1078,7 +1078,7 @@ void setDAC(){
  5cc:	91 05       	cpc	r25, r1
  5ce:	e9 f0       	breq	.+58     	; 0x60a <__vector_9+0x3c0>
 			{
-				prepareSetDAC(0,3);				
+				prepareSetDAC(0,CHAN_4);				
 				setDAC();
 			}	//пнули		
 				//посмотрим, что вышло
@@ -1099,7 +1099,7 @@ void setDAC(){
  5e4:	91 05       	cpc	r25, r1
  5e6:	31 f4       	brne	.+12     	; 0x5f4 <__vector_9+0x3aa>
 			{
-				prepareSetDAC(ref16,3);
+				prepareSetDAC(ref16,CHAN_4);
  5e8:	80 91 1d 01 	lds	r24, 0x011D
  5ec:	90 91 1e 01 	lds	r25, 0x011E
  5f0:	63 e0       	ldi	r22, 0x03	; 3
@@ -1126,20 +1126,20 @@ void setDAC(){
  602:	80 91 46 01 	lds	r24, 0x0146
  606:	80 93 c6 00 	sts	0x00C6, r24
 				
-				prepareSetDAC(0,3);
+				prepareSetDAC(0,CHAN_4);
  60a:	80 e0       	ldi	r24, 0x00	; 0
  60c:	90 e0       	ldi	r25, 0x00	; 0
  60e:	63 e0       	ldi	r22, 0x03	; 3
  610:	17 c0       	rjmp	.+46     	; 0x640 <__vector_9+0x3f6>
 				setDAC();
 			}		
-			//3й просмотрен
+			//4й просмотрен
 			else if(event_cnt==11)
  612:	8b 30       	cpi	r24, 0x0B	; 11
  614:	91 05       	cpc	r25, r1
  616:	31 f4       	brne	.+12     	; 0x624 <__vector_9+0x3da>
 			{				 
-				prepareSetDAC(ref16,2);
+				prepareSetDAC(ref16,CHAN_3);
  618:	80 91 1d 01 	lds	r24, 0x011D
  61c:	90 91 1e 01 	lds	r25, 0x011E
  620:	62 e0       	ldi	r22, 0x02	; 2
@@ -1167,7 +1167,7 @@ void setDAC(){
  632:	80 91 46 01 	lds	r24, 0x0146
  636:	80 93 c6 00 	sts	0x00C6, r24
 				
-				prepareSetDAC(0,2);
+				prepareSetDAC(0,CHAN_3);
  63a:	80 e0       	ldi	r24, 0x00	; 0
  63c:	90 e0       	ldi	r25, 0x00	; 0
  63e:	62 e0       	ldi	r22, 0x02	; 2
@@ -1779,6 +1779,8 @@ ISR(USART_RX_vect)
  98a:	80 93 21 01 	sts	0x0121, r24
  98e:	7c c0       	rjmp	.+248    	; 0xa88 <__vector_18+0x180>
 		break;
+		
+		
 		case 1:
 		MD=UDR0;
  990:	20 91 c6 00 	lds	r18, 0x00C6
@@ -1793,12 +1795,11 @@ ISR(USART_RX_vect)
  9a4:	80 93 0e 01 	sts	0x010E, r24
  9a8:	6f c0       	rjmp	.+222    	; 0xa88 <__vector_18+0x180>
 		else
-			time_step=6;//4
+			time_step=6;//4		
  9aa:	86 e0       	ldi	r24, 0x06	; 6
  9ac:	90 e0       	ldi	r25, 0x00	; 0
  9ae:	90 93 0f 01 	sts	0x010F, r25
  9b2:	80 93 0e 01 	sts	0x010E, r24
-		
 		if(MD==PROGRAM)
  9b6:	22 30       	cpi	r18, 0x02	; 2
  9b8:	09 f0       	breq	.+2      	; 0x9bc <__vector_18+0xb4>
@@ -1813,6 +1814,8 @@ ISR(USART_RX_vect)
  9c8:	5f c0       	rjmp	.+190    	; 0xa88 <__vector_18+0x180>
 		}
 		break;
+		
+		
 		case 2:		
 		x16_simple = UDR0;
  9ca:	80 91 c6 00 	lds	r24, 0x00C6
