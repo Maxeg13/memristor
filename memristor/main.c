@@ -17,7 +17,8 @@
 #define BAUD 9600                                   
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
 #define SET_BYTE(port, pos) port|=(1<<pos)
-#define UNSET_BYTE(port, pos) port&=~(1<<pos)
+#define reset_BYTE(port, pos) port&=~(1<<pos)
+#define DUMMY_BYTE 0
 
 
 //три возможных режима
@@ -56,7 +57,7 @@ int16_t x16_grad;
 int16_t x16=0;
 int16_t x16_simple;
 int16_t ref16=0;
-int16_t unset16=0;
+int16_t reset16=0;
 uint8_t sync=0;
 uint8_t t1=2;//useless
 uint8_t t2=2;
@@ -160,10 +161,10 @@ void prepareResetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
 			
 void gatherMult()
 {
-	UNSET_BYTE(PORTD, 6);
-	UNSET_BYTE(PORTD, 7);				
-	UNSET_BYTE(PORTD, 5);
-	UNSET_BYTE(PORTC, 4);
+	reset_BYTE(PORTD, 6);
+	reset_BYTE(PORTD, 7);				
+	reset_BYTE(PORTD, 5);
+	reset_BYTE(PORTC, 4);
 	
 	
 	SET_BYTE(PORTC, 1);				
@@ -173,9 +174,9 @@ void gatherMult()
 }
 void separMult()
 {
-	UNSET_BYTE(PORTB, 1);
-	UNSET_BYTE(PORTB, 2);
-	UNSET_BYTE(PORTC, 1);
+	reset_BYTE(PORTB, 1);
+	reset_BYTE(PORTB, 2);
+	reset_BYTE(PORTC, 1);
 	
 	SET_BYTE(PORTC, 4);						
 	SET_BYTE(PORTD, 6);
@@ -401,50 +402,52 @@ ISR(TIMER2_OVF_vect)
 				
 				case 3:
 								
-				//VAC16_HH=VAC16_H;
-				VAC16_H=VAC16;
-				
-				if(pos_phase)
-				{
-							//PORTC=0b00000010;
-		//PORTB=0b00011111;
-		//PORTD=0b11101100;
-					VAC16+=32;
-					if(VAC16>(ref16-1))
+					//VAC16_HH=VAC16_H;
+					VAC16_H=VAC16;
+					
+					if(pos_phase)
 					{
-					pos_phase=0;				
+								//PORTC=0b00000010;
+			//PORTB=0b00011111;
+			//PORTD=0b11101100;
+						VAC16+=32;
+						if(VAC16>(ref16-1))
+						{
+						pos_phase=0;				
+						}
 					}
-				}
-				else
-				{
-					//PORTB=0;
-		//PORTC=0;
-		//PORTD=0;
-					VAC16-=32;
-					if(VAC16<(-x16+1))
+					else
 					{
-					pos_phase=1;									
-					}
-				}	
-				
-				
-				
-				UDR0=VAC16>>4;
-				prepareSetDAC(VAC16,chan);
-				//prepareSetDAC(VAC16,1);
-				//prepareSetDAC(VAC16,2);
-				//prepareSetDAC(VAC16,3);
-				//prepareSetDAC(VAC16,4);
-				//prepareSetDAC(VAC16,5);
-				//prepareSetDAC(VAC16,6);
-				//prepareSetDAC(VAC16,7);				
-				setDAC();
+						//PORTB=0;
+			//PORTC=0;
+			//PORTD=0;
+						VAC16-=32;
+						if(VAC16<(-x16+1))
+						{
+						pos_phase=1;									
+						}
+					}	
+					
+					
+					
+					UDR0=VAC16>>4;
+					prepareSetDAC(VAC16,chan);
+					//prepareSetDAC(VAC16,1);
+					//prepareSetDAC(VAC16,2);
+					//prepareSetDAC(VAC16,3);
+					//prepareSetDAC(VAC16,4);
+					//prepareSetDAC(VAC16,5);
+					//prepareSetDAC(VAC16,6);
+					//prepareSetDAC(VAC16,7);				
+					setDAC();
+				case 4:
+					UDR0=DUMMY_BYTE;	
 				
 			}
 						
 			
 			UDP_cnt++;
-			UDP_cnt%=4;
+			UDP_cnt%=5;
 
 			
 		}
@@ -524,44 +527,45 @@ ISR(TIMER2_OVF_vect)
 		}
 		else if(MD == ONE_SHOT)
 		{
-			//готовим unset
-			if(event_cnt==0)
-			{
+			//готовим reset
+				if(event_cnt==1){
 				separMult();
-			}//unsetting
-			else if(event_cnt==1)
+			}//resetting
+			else if(event_cnt==2)
 			{
-				prepareSetDAC(unset16,CHAN_4);
-				prepareSetDAC(unset16,CHAN_3);
+				prepareSetDAC(reset16,CHAN_4);
+				prepareSetDAC(reset16,CHAN_3);
 				setDAC();
 			}
-			else if(event_cnt==2)
+			else if(event_cnt==3)
 			{
 				prepareSetDAC(0,CHAN_4);
 				prepareSetDAC(0,CHAN_3);
 				setDAC();
-			}		//is unset		
-			else if(event_cnt==3)
+			}		//is reset		
+			else if(event_cnt==4)
 			{
 				gatherMult();
 			}
-			else if(event_cnt==4)
+			else if(event_cnt==5)
 			{
 				prepareSetDAC(x16,CHAN_4);				
 				setDAC();
 			}		
-			else if(event_cnt==5)
+			else if(event_cnt==6)
 			{
 				prepareSetDAC(0,CHAN_4);				
 				setDAC();
-			}	//пнули		
-				//посмотрим, что вышло
-			else if(event_cnt==6)
+			}	
+			
+			//пнули		
+			//посмотрим, что вышло
+			else if(event_cnt==7)
 			{
-				UDR0=255;
+				UDR0=255;//1
 				separMult();				
 			}			
-			else if(event_cnt==7)
+			else if(event_cnt==8)
 			{
 				prepareSetDAC(ref16,CHAN_4);
 				setDAC();				
@@ -572,11 +576,11 @@ ISR(TIMER2_OVF_vect)
 				//prepareSetDAC(ref16,3);
 				ADCL_=ADCL;	
 				ADCH_=ADCH;
-				UDR0=ADCL_;
+				UDR0=ADCL_;//2
 			}
 			else if(event_cnt==10)
 			{
-				UDR0=ADCH_; 
+				UDR0=ADCH_; //3 1st chan
 				
 				prepareSetDAC(0,CHAN_4);
 				setDAC();
@@ -589,15 +593,15 @@ ISR(TIMER2_OVF_vect)
 				
 				ADCSRA |= (1 << ADSC); 
 			}
-			else if(event_cnt==13)
+			else if(event_cnt==12)
 			{		
 				ADCL_=ADCL;	
 				ADCH_=ADCH;
-				UDR0=ADCL_;
+				UDR0=ADCL_; //4
 			}
-			else if(event_cnt == 14)
+			else if(event_cnt == 13)
 			{
-				UDR0=ADCH_; 
+				UDR0=ADCH_; // 5
 				
 				prepareSetDAC(0,CHAN_3);
 				setDAC();
@@ -608,10 +612,10 @@ ISR(TIMER2_OVF_vect)
 		
 		else if(MD == ANALYZE)//5 by 5
 		{
-			//unset
+			//reset
 			if(event_cnt==0)
 			{
-				prepareSetDAC(unset16, chan);
+				prepareSetDAC(reset16, chan);
 				setDAC();
 				UDR0=255;
 			}
@@ -739,7 +743,7 @@ ISR(TIMER2_OVF_vect)
 		}
 		else
 		{
-			if(event_cnt<30)
+			if(event_cnt<16)
 				event_cnt++;			
 		}
 	}
@@ -789,7 +793,7 @@ ISR(USART_RX_vect)
 		if(MD==PROGRAM)
 			t1=UDR0;
 		else
-			unset16=UDR0<<4;
+			reset16=UDR0<<4;
 		break;		
 		case 5:
 		

@@ -71,7 +71,7 @@ QSlider* V_ref_slider;
 QSlider* VAC_mini_slider;
 //QLineEdit* V2_le;
 QLabel* targ_label;
-QSlider* V_unset_slider;
+QSlider* V_reset_slider;
 QLineEdit* t2_le;
 QLineEdit* dT_le;
 QLineEdit* T_le;
@@ -88,7 +88,7 @@ int VAC_max[8]={V_m_,V_m_,V_m_,V_m_,
 //QLineEdit* chan_le;
 QComboBox* chan_cb;
 QCheckBox* reverse_check;
-QLabel* unset_label;
+QLabel* reset_label;
 QLabel* t2_label;
 
 //QLabel* t2_label;
@@ -257,8 +257,8 @@ MainWindow::MainWindow(QWidget *parent)
     V_ref_label=new QLabel("V2 (ref)");
     V_ref_label->setMaximumWidth(labels_width);
 
-    unset_label=new QLabel("V unset: ");
-    unset_label->setMaximumWidth(labels_width);
+    reset_label=new QLabel("V reset: ");
+    reset_label->setMaximumWidth(labels_width);
     t2_label=new QLabel("tau2");
     t2_label->setMaximumWidth(labels_width);
 
@@ -299,7 +299,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     //common parameterization
-    V_unset_slider=new QSlider(Qt::Orientation::Horizontal);
+    V_reset_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_mini_slider = new QSlider(Qt::Orientation::Horizontal);
     V_pl_max_slider = new QSlider(Qt::Orientation::Horizontal);
     targ_slider = new QSlider(Qt::Orientation::Horizontal);
@@ -307,7 +307,7 @@ MainWindow::MainWindow(QWidget *parent)
     V_ref_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_max_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_min_slider=new QSlider(Qt::Orientation::Horizontal);
-    vector<QSlider*> sliders={V_unset_slider, VAC_mini_slider, V_pl_max_slider, targ_slider, V_set_slider, VAC_min_slider, VAC_max_slider, V_ref_slider};
+    vector<QSlider*> sliders={V_reset_slider, VAC_mini_slider, V_pl_max_slider, targ_slider, V_set_slider, VAC_min_slider, VAC_max_slider, V_ref_slider};
     for(auto& a:sliders)
     {
         a->setTickInterval(2);
@@ -347,7 +347,7 @@ MainWindow::MainWindow(QWidget *parent)
     //    serial_le->setMaximumWidth(200);
     //    //    V1_le->setMaximumWidth(200);
     //    //    V2_le->setMaximumWidth(200);
-    //    V_unset_slider->setMaximumWidth(200);
+    //    V_reset_slider->setMaximumWidth(200);
     //    t2_le->setMaximumWidth(200);
     //    dT_le->setMaximumWidth(200);
     //    T_le->setMaximumWidth(200);
@@ -376,8 +376,8 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(V_ref_label,2,4);
     lt->addWidget(V_ref_slider,2,5);
 
-    lt->addWidget(unset_label,3,4);
-    lt->addWidget(V_unset_slider,3,5);
+    lt->addWidget(reset_label,3,4);
+    lt->addWidget(V_reset_slider,3,5);
 
     lt->addWidget(VAC_min_label,4,4);
     lt->addWidget(VAC_min_slider,4,5);
@@ -451,7 +451,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(chan_cb,SIGNAL(currentIndexChanged(int)),this,SLOT(chanPressed()));
     connect(reverse_check,SIGNAL(stateChanged(int)),this,SLOT(oneSend()));
     connect(VAC_check,SIGNAL(stateChanged(int)),this,SLOT(VAC_check_changed()));
-    //    connect(V_unset_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
+    //    connect(V_reset_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     connect(t2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(dT_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(T_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
@@ -501,6 +501,7 @@ void MainWindow::COMInit()
 
 void MainWindow::Serial_get()
 {
+    static auto mySign=[](int a, bool b){if(b)return a; else return -a;};
     static QString adch;
 
     static uint8_t buf1;
@@ -548,8 +549,8 @@ void MainWindow::Serial_get()
                 if((uint8_t)buf[i]!=255)
                 {
                     //                    qDebug()<<"hello";
-                    ptr=3;
-                    ptr%=4;
+                    ptr=4;
+
                 }
                 //                qDebug()<<"\nc:";
                 break;
@@ -585,7 +586,7 @@ void MainWindow::Serial_get()
                 //                curveADC->signalDrawing(1);
                 voltage[voltage_ind]=buf_;
 
-                auto mySign=[](int a, bool b){if(b)return a; else return -a;};
+
                 if(mapIV.find((int)current[voltage_ind])!=mapIV.end())
                     voltage[voltage_ind]-=mySign(mapIV[(int)current[voltage_ind]],!reversed[chan]);
 
@@ -605,11 +606,13 @@ void MainWindow::Serial_get()
 
                 setCurve->set_Drawing(voltage,current,voltage_ind,current_ind);
                 break;
-
+            case 4:
+                //DUMMY
+                break;
 
             }
             ptr++;
-            ptr%=4;
+            ptr%=5;
 
 
         }
@@ -661,9 +664,7 @@ void MainWindow::Serial_get()
             case 0:
                 if((uint8_t)buf[i]!=255)
                 {
-                    //                    qDebug()<<"hello";
-                    ptr=4;
-                    ptr%=5;
+                    ptr=4;                    
                 }
                 break;
             case 1:
@@ -758,7 +759,7 @@ void MainWindow::custom_btn_pressed()
     //        it=0;
     disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     V_set_label->setText("V set");
-    //    unset_label->setText("tau1");
+    //    reset_label->setText("tau1");
     t2_label->setText("tau2");
     MD=CUSTOM;
     oneSend();
@@ -768,7 +769,7 @@ void MainWindow::custom_btn_pressed()
 void MainWindow::prog_btn_pressed()
 {
     MD=PROGRAM;
-    //    unset_label->setText("targ");
+    //    reset_label->setText("targ");
     //    t2_label->setText("V+ max");
     oneSend();
     data_adc.resize(data_adc.size(),0);
@@ -792,7 +793,7 @@ void MainWindow::rest_btn_pressed()
 
     port.write(&c,1);
 
-    //    c=V_unset_slider->value();
+    //    c=V_reset_slider->value();
     c=0;
     port.write(&c,1);
 
@@ -891,7 +892,7 @@ void MainWindow::vac_btn_pressed()
     set_plot->setAxisAutoScale(QwtPlot::yLeft,1);
     set_plot->setAxisAutoScale(QwtPlot::yRight,1);
     disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
-    //    unset_label->setText("tau1");
+    //    reset_label->setText("tau1");
     t2_label->setText("tau2");
     for(auto& it:current)
         it=0;
@@ -973,7 +974,7 @@ void MainWindow::oneSend()
     VAC_min_label->setText("VAC- "+QString().setNum(V_koef*VAC_min_slider->value(), 'g',2));
     VAC_max_label->setText("VAC+ "+QString().setNum(V_koef*VAC_max_slider->value(), 'g',2));
     V_set_label->setText("V set: "+QString().setNum(V_koef*V_set_slider->value(), 'g',2));
-    unset_label->setText("V unset: "+QString().setNum(V_koef*V_unset_slider->value(), 'g',2));
+    reset_label->setText("V reset: "+QString().setNum(V_koef*V_reset_slider->value(), 'g',2));
     V_ref_label->setText("Ref: "+QString().setNum(V_koef*V_ref_slider->value(), 'g',2));
     VAC_check->setText("check: "+QString().setNum(V_koef*VAC_mini_slider->value(), 'g',2));
 
@@ -1019,7 +1020,7 @@ void MainWindow::oneSend()
     port.write(&c,1);//3
 
     if(MD!=PROGRAM)
-        c=V_unset_slider->value();
+        c=V_reset_slider->value();
     else
         c=targ_slider->value();//target
     port.write(&c,1);//4
