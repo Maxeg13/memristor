@@ -30,7 +30,7 @@ float V_koef=0.070;
 float I_koef=11.;
 using namespace std;
 QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *analyze_btn,
-*filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *one_shot_btn;
+*filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *shots_btn;
 
 enum MODE
 {
@@ -156,7 +156,7 @@ MainWindow::MainWindow(QWidget *parent)
     custom_btn=new QPushButton("CUSTOM MODE");
     gather_mult_btn = new QPushButton("gather mult");
     separ_mult_btn = new QPushButton("separ mult");
-    one_shot_btn = new QPushButton("ONE SHOT");
+    shots_btn = new QPushButton("SHOT LOOP");
     analyze_btn = new QPushButton("ANALYZE");
     vac_btn=new QPushButton("VAC MODE");
     VAC_check=new QCheckBox("check: ");
@@ -167,7 +167,7 @@ MainWindow::MainWindow(QWidget *parent)
     ///
     ///
     connect(write_check, SIGNAL(stateChanged(int)), this, SLOT(write_check_state_changed(int)));
-    connect(one_shot_btn,SIGNAL(pressed()),this,SLOT(one_shot_btn_pressed()));
+    connect(shots_btn,SIGNAL(pressed()),this,SLOT(shots_btn_pressed()));
     connect(separ_mult_btn,SIGNAL(pressed()),this,SLOT(separ_mult_btn_pressed()));
     connect(gather_mult_btn,SIGNAL(pressed()),this,SLOT(gather_mult_btn_pressed()));
     connect(rest_btn,SIGNAL(pressed()),this,SLOT(rest_btn_pressed()));
@@ -415,7 +415,7 @@ MainWindow::MainWindow(QWidget *parent)
     //-----------------------------
     lt->addWidget(write_check, 2,0,1,2);
 
-    lt->addWidget(one_shot_btn, 3,0,1,2);
+    lt->addWidget(shots_btn, 3,0,1,2);
     lt->addWidget(analyze_btn, 3,2,1,2);
 
     lt->addWidget(gather_mult_btn, 4,0,1,2);
@@ -459,15 +459,15 @@ MainWindow::MainWindow(QWidget *parent)
     connect(targ_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
 
 
-    serial_get_timer.setInterval(1);
+    serial_get_timer.setInterval(5);
 
     imit_timer.setInterval(300);
     if(imitation_on)
         imit_timer.start();
     //prog_btn->set
-    one_shot_timer.setInterval(3);
+//    one_shot_timer.setInterval(3);
 
-    connect(&one_shot_timer, SIGNAL(timeout()),this,SLOT(one_shot_btn_pressed()));
+    connect(&one_shot_timer, SIGNAL(timeout()),this,SLOT(shots_btn_pressed()));
     connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
     connect(&imit_timer,SIGNAL(timeout()),this,SLOT(setNewImg()));
 }
@@ -829,7 +829,7 @@ void MainWindow::separ_mult_btn_pressed()
     oneSend();
 }
 
-void MainWindow::one_shot_btn_pressed()
+void MainWindow::shots_btn_pressed()
 {
     ptr=0;
     MD = ONE_SHOT;
@@ -924,12 +924,14 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
     static bool key1=0;
     switch(event->key())
     {
+
+    // bad place in a code
     case Qt::Key_1:
-        key1=!key1;
-        if(key1)
-            one_shot_timer.start(50);
-        else
-            one_shot_timer.stop();
+//        key1=!key1;
+//        if(key1)
+//            one_shot_timer.start(43);
+//        else
+//            one_shot_timer.stop();
         break;
 
     case Qt::Key_W:
@@ -967,7 +969,7 @@ void MainWindow::setNewImg()
 
 void MainWindow::oneSend()
 {
-    serial_get_timer.setInterval(1);
+    serial_get_timer.setInterval(5);
     char c;
     V_pl_max_label->setText("V+max: "+QString().setNum(V_koef*V_pl_max_slider->value(), 'g',2));
     targ_label->setText("targ: "+QString().setNum(I_koef*targ_slider->value(), 'g',3));

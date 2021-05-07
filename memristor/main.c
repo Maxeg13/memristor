@@ -605,6 +605,7 @@ ISR(TIMER2_OVF_vect)
 				
 				prepareSetDAC(0,CHAN_3);
 				setDAC();
+				event_cnt=0;	
 			}
 			
 		}
@@ -814,7 +815,7 @@ ISR(USART_RX_vect)
 		case 9:
 			reverted[chan]=UDR0;
 		
-			event_cnt=0;			
+			//event_cnt=0;			
 			
 			if(MD==GATHER_MULT)
 			{
