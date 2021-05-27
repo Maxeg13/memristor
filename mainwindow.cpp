@@ -133,10 +133,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     mapIV.erase(mapIV.begin(),mapIV.end());
     curveADC2=new QwtPlotCurve;
-    //    qDebug()<<QString::number(1.2);
-    //    QString file_name = "C:\\Users\\DrPepper\\Documents\\memristor\\stat.txt";
-    file_rand_stat = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\rand_stat.txt"));
-    //    file_rand_stat->open(QIODevice::WriteOnly);
+
+//    file_rand_stat = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\rand_stat.txt"));
+     file_rand_stat = new QFile(QString("rand_stat.txt"));
 
     file_analyze = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\analyze.txt"));
     file_analyze->open(QIODevice::WriteOnly);
