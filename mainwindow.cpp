@@ -333,14 +333,12 @@ MainWindow::MainWindow(QWidget *parent)
     VAC_min_slider->setValue(30);
     //    chan_le=new QLineEdit("0");
     chan_cb=new QComboBox();
-    chan_cb->addItem("1",0);
-    chan_cb->addItem("2",1);
-    chan_cb->addItem("3",2);
-    chan_cb->addItem("4",3);
-    chan_cb->addItem("5",4);
-    chan_cb->addItem("6",5);
-    chan_cb->addItem("7",6);
-    chan_cb->addItem("8",7);
+
+    for (auto i =0 ;i<16; i++)
+    {
+        chan_cb->addItem(QString::number(i+1),i);
+    }
+
     reverse_check = new QCheckBox("");
 
     //    serial_le->setMaximumWidth(200);

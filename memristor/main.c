@@ -9,7 +9,6 @@
 #include <util/delay.h>
 #define MIG 300
 #define LDAC PD2
-#define SYNC PD5
 #define DDR_SPI DDRB
 #define DD_MISO PB4
 #define DD_MOSI PB3
@@ -21,7 +20,7 @@
 #define reset_BYTE(port, pos) port&=~(1<<pos)
 #define DUMMY_BYTE 0
 
-
+uint8_t SYNC_PINS[] = {PD5, PD6};
 //три возможных режима
 typedef enum
 {
@@ -129,18 +128,16 @@ void SPI_MasterInit()
 //вне функции в перспепктиве создания многоканальной схемы
 void prepareSetDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 larger
 {
-
-
 	x=-x;
 	x+=2048;
-	PORTD&=~(1<<SYNC);
+	PORTD&=~(1<<SYNC_PINS[chan>>3]);
 	send8 = (x >> 8);
 	send8 &= 0b00001111;
 	send8|=(chan_addrs[chan]);
 	SPI_WriteByte(send8);
 	send8=x;
 	SPI_WriteByte(send8);		
-	PORTD|=(1<<SYNC);
+	PORTD|=(1<<SYNC_PINS[chan>>3]);
 
 }
 
@@ -149,14 +146,14 @@ void prepareResetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
 {
     // static int16_t x;
 	//x+=2048;
-	PORTD&=~(1<<SYNC);
+	PORTD&=~(1<<SYNC_PINS[chan>>3]);
 	//send8 = (x >> 8);
 	// send8 = 0b00001000;
 	// send8|=(chan_addrs[chan]);
 	SPI_WriteByte(0b00001000|chan_addrs[chan]);
 	// send8=x;
 	SPI_WriteByte(0);		
-	PORTD|=(1<<SYNC);
+	PORTD|=(1<<SYNC_PINS[chan>>3]);
 }
 
 			
