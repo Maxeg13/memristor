@@ -9,7 +9,7 @@
 #include <util/delay.h>
 #define MIG 300
 #define LDAC PD2
-#define SYNC PD5
+#define SYNC PD3
 #define DDR_SPI DDRB
 #define DD_MISO PB4
 #define DD_MOSI PB3

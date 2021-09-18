@@ -168,7 +168,7 @@
  190               	/* prologue: function */
  191               	/* frame size = 0 */
  192               	.LM46:
- 193 007c 5B98      		cbi 43-32,3
+ 193 007c 5D98      		cbi 43-32,5
  194               	.LM47:
  195 007e E82F      		mov r30,r24
  196 0080 FF27      		clr r31
@@ -188,7 +188,7 @@
  210 0096 90E0      		ldi r25,hi8(0)
  211 0098 0E94 0000 		call SPI_WriteByte
  212               	.LM49:
- 213 009c 5B9A      		sbi 43-32,3
+ 213 009c 5D9A      		sbi 43-32,5
  214               	/* epilogue start */
  215               	.LM50:
  216 009e 0895      		ret
@@ -213,7 +213,7 @@
  237 00ae 0050      		subi r16,lo8(-(2048))
  238 00b0 184F      		sbci r17,hi8(-(2048))
  239               	.LM54:
- 240 00b2 5B98      		cbi 43-32,3
+ 240 00b2 5D98      		cbi 43-32,5
  241               	.LM55:
  242 00b4 812F      		mov r24,r17
  243 00b6 9927      		clr r25
@@ -241,7 +241,7 @@
  265 00dc 90E0      		ldi r25,lo8(0)
  266 00de 0E94 0000 		call SPI_WriteByte
  267               	.LM59:
- 268 00e2 5B9A      		sbi 43-32,3
+ 268 00e2 5D9A      		sbi 43-32,5
  269               	/* epilogue start */
  270               	.LM60:
  271 00e4 1F91      		pop r17
@@ -317,7 +317,7 @@
  347 0128 84B9      		out 36-32,r24
  348               	.LM75:
  349               	/* #APP */
- 350               	 ;  278 "main.c" 1
+ 350               	 ;  279 "main.c" 1
  351 012a 7894      		sei
  352               	 ;  0 "" 2
  353               	/* #NOAPP */
@@ -1786,71 +1786,71 @@
  2000               	.Letext0:
 DEFINED SYMBOLS
                             *ABS*:00000000 main.c
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:2      *ABS*:0000003f __SREG__
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:3      *ABS*:0000003e __SP_H__
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:4      *ABS*:0000003d __SP_L__
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:5      *ABS*:00000034 __CCP__
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:6      *ABS*:00000000 __tmp_reg__
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:7      *ABS*:00000001 __zero_reg__
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:18     .text:00000000 ADC_Init
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:42     .text:00000016 timer_init
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:67     .text:0000002e uart_init
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:92     .text:00000044 SPI_MasterInit
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:110    .text:0000004e gatherMult
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:138    .text:00000060 separMult
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:166    .text:00000072 SPI_WriteByte
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:186    .text:0000007c prepareResetDAC
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1712   .data:00000002 chan_addrs
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:221    .text:000000a0 prepareSetDAC
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:2      *ABS*:0000003f __SREG__
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:3      *ABS*:0000003e __SP_H__
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:4      *ABS*:0000003d __SP_L__
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:5      *ABS*:00000034 __CCP__
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:6      *ABS*:00000000 __tmp_reg__
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:7      *ABS*:00000001 __zero_reg__
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:18     .text:00000000 ADC_Init
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:42     .text:00000016 timer_init
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:67     .text:0000002e uart_init
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:92     .text:00000044 SPI_MasterInit
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:110    .text:0000004e gatherMult
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:138    .text:00000060 separMult
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:166    .text:00000072 SPI_WriteByte
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:186    .text:0000007c prepareResetDAC
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1712   .data:00000002 chan_addrs
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:221    .text:000000a0 prepareSetDAC
                             *COM*:00000001 send8
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:279    .text:000000ea set_reverser
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:292    .text:000000ec setDAC
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:308    .text:000000f2 main
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1707   .data:00000001 STAT_CYCLE
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1702   .data:00000000 STAT_N
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:279    .text:000000ea set_reverser
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:292    .text:000000ec setDAC
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:308    .text:000000f2 main
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1707   .data:00000001 STAT_CYCLE
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1702   .data:00000000 STAT_N
                             *COM*:00000001 BIG_STAT_N
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:443    .text:000001a4 __vector_9
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:443    .text:000001a4 __vector_9
                             *COM*:00000002 ctr
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1844   .data:0000000e time_step
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1696   .bss:00000000 MD
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1844   .data:0000000e time_step
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1696   .bss:00000000 MD
                             *COM*:00000002 event_cnt
                             *COM*:00000001 ADCL_
                             *COM*:00000001 ADCH_
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1774   .data:0000000a t1
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1774   .data:0000000a t1
                             *COM*:00000001 dT
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1784   .data:0000000c dTt2
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1784   .data:0000000c dTt2
                             *COM*:00000002 _adc
                             *COM*:00000002 accum
                             *COM*:00000001 ADC_on
                             *COM*:00000001 accum_cnt
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1851   .bss:00000023 i.1506
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1851   .bss:00000023 i.1506
                             *COM*:00000001 UDP_cnt
                             *COM*:00000001 ADCL__
                             *COM*:00000001 ADCH__
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1726   .bss:00000001 VAC16
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1732   .bss:00000003 VAC16_H
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1789   .data:0000000d pos_phase
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1756   .bss:0000000b ref16
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1750   .bss:00000009 x16
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1820   .bss:00000014 chan
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1726   .bss:00000001 VAC16
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1732   .bss:00000003 VAC16_H
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1789   .data:0000000d pos_phase
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1756   .bss:0000000b ref16
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1750   .bss:00000009 x16
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1820   .bss:00000014 chan
                             *COM*:00000001 T
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1814   .bss:00000013 PROGRAM_done
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1814   .bss:00000013 PROGRAM_done
                              .bss:00000021 adc_h.1513
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1744   .bss:00000007 prog_val
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1779   .data:0000000b t2
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1762   .bss:0000000d reset16
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1826   .bss:00000015 an_cnt
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1802   .bss:00000011 STAT_V_step
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1744   .bss:00000007 prog_val
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1779   .data:0000000b t2
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1762   .bss:0000000d reset16
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1826   .bss:00000015 an_cnt
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1802   .bss:00000011 STAT_V_step
                             *COM*:00000002 x16_grad
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1832   .bss:00000017 an_cnt_fast
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1796   .bss:00000010 STAT_dt_step
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1463   .text:00000890 __vector_18
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1808   .bss:00000012 ptr
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1768   .bss:0000000f sync
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1832   .bss:00000017 an_cnt_fast
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1796   .bss:00000010 STAT_dt_step
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1463   .text:00000890 __vector_18
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1808   .bss:00000012 ptr
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1768   .bss:0000000f sync
                             *COM*:00000002 x16_simple
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1838   .bss:00000019 reverted
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1738   .bss:00000005 VAC16_HH
-C:\Users\DrPepper\AppData\Local\Temp/cce5y0el.s:1849   .data:00000010 eventN
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1838   .bss:00000019 reverted
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1738   .bss:00000005 VAC16_HH
+C:\Users\DrPepper\AppData\Local\Temp/cc94cduW.s:1849   .data:00000010 eventN
                             *COM*:00000001 c
                             *COM*:00000002 ADC_cnt
 

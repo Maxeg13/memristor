@@ -251,7 +251,7 @@ void prepareResetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
     // static int16_t x;
 	//x+=2048;
 	PORTD&=~(1<<SYNC);
- 122:	5b 98       	cbi	0x0b, 3	; 11
+ 122:	5d 98       	cbi	0x0b, 5	; 11
 	//send8 = (x >> 8);
 	// send8 = 0b00001000;
 	// send8|=(chan_addrs[chan]);
@@ -272,7 +272,7 @@ void prepareResetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
  13c:	90 e0       	ldi	r25, 0x00	; 0
  13e:	0e 94 8c 00 	call	0x118	; 0x118 <SPI_WriteByte>
 	PORTD|=(1<<SYNC);
- 142:	5b 9a       	sbi	0x0b, 3	; 11
+ 142:	5d 9a       	sbi	0x0b, 5	; 11
 }
  144:	08 95       	ret
 
@@ -297,7 +297,7 @@ void prepareSetDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 large
  154:	00 50       	subi	r16, 0x00	; 0
  156:	18 4f       	sbci	r17, 0xF8	; 248
 	PORTD&=~(1<<SYNC);
- 158:	5b 98       	cbi	0x0b, 3	; 11
+ 158:	5d 98       	cbi	0x0b, 5	; 11
 	send8 = (x >> 8);
 	send8 &= 0b00001111;
 	send8|=(chan_addrs[chan]);
@@ -324,7 +324,7 @@ void prepareSetDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 large
  182:	90 e0       	ldi	r25, 0x00	; 0
  184:	0e 94 8c 00 	call	0x118	; 0x118 <SPI_WriteByte>
 	PORTD|=(1<<SYNC);
- 188:	5b 9a       	sbi	0x0b, 3	; 11
+ 188:	5d 9a       	sbi	0x0b, 5	; 11
 
 }
  18a:	1f 91       	pop	r17
