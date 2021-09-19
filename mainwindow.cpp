@@ -32,6 +32,8 @@ using namespace std;
 QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *analyze_btn,
 *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *shots_btn;
 
+#define CHAN_N 16
+
 enum MODE
 {
     CUSTOM,
@@ -46,8 +48,7 @@ enum MODE
 MODE MD;
 
 map<int,int> mapIV;
-int reversed[8]={0,0,0,0,
-                 0,0,0,0};
+int reversed[CHAN_N];
 int adc_shift=120;
 int ind_p;
 int chan=0;
@@ -79,12 +80,9 @@ QLabel* VAC_min_label;
 QLabel* VAC_max_label;
 QSlider* targ_slider;
 QSlider* VAC_min_slider;
-int V_m_=25;
-int VAC_min[8]={V_m_,V_m_,V_m_,V_m_,
-                V_m_,V_m_,V_m_,V_m_};
+int VAC_min[CHAN_N];
+int VAC_max[CHAN_N];
 QSlider* VAC_max_slider;
-int VAC_max[8]={V_m_,V_m_,V_m_,V_m_,
-                V_m_,V_m_,V_m_,V_m_};
 //QLineEdit* chan_le;
 QComboBox* chan_cb;
 QCheckBox* reverse_check;
@@ -131,6 +129,14 @@ QFile* file_analyze;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    int V_m_ = 25;
+    for(int i=0;i<CHAN_N; i++)
+    {
+    reversed[i] = 0;
+    VAC_max[i] = VAC_min[i] = V_m_;
+    }
+
+
     mapIV.erase(mapIV.begin(),mapIV.end());
     curveADC2=new QwtPlotCurve;
 
@@ -162,9 +168,9 @@ MainWindow::MainWindow(QWidget *parent)
     write_check = new QCheckBox("write on");
 
     //////
-    /// \brief connect
+    /// brief connect
     ///
-    ///
+
     connect(write_check, SIGNAL(stateChanged(int)), this, SLOT(write_check_state_changed(int)));
     connect(shots_btn,SIGNAL(pressed()),this,SLOT(shots_btn_pressed()));
     connect(separ_mult_btn,SIGNAL(pressed()),this,SLOT(separ_mult_btn_pressed()));
@@ -334,7 +340,7 @@ MainWindow::MainWindow(QWidget *parent)
     //    chan_le=new QLineEdit("0");
     chan_cb=new QComboBox();
 
-    for (auto i =0 ;i<16; i++)
+    for (int i =0 ;i<16; i++)
     {
         chan_cb->addItem(QString::number(i+1),i);
     }

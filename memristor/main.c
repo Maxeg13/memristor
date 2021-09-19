@@ -7,20 +7,26 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-#define MIG 300
+#define MIG 300 		// МиГ25??
+
+#define CHAN_N 16
+
 #define LDAC PD2
 #define DDR_SPI DDRB
 #define DD_MISO PB4
 #define DD_MOSI PB3
 #define DD_SCK PB5
-#define SPI_SS PB2
+#define SPI_SS PB2 	// is it needed?
+uint8_t SYNC_PINS[] = {PD5, PD6};
+
 #define BAUD 9600                                   
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
 #define SET_BYTE(port, pos) port|=(1<<pos)
 #define reset_BYTE(port, pos) port&=~(1<<pos)
 #define DUMMY_BYTE 0
 
-uint8_t SYNC_PINS[] = {PD5, PD6};
+
+
 //три возможных режима
 typedef enum
 {
@@ -49,10 +55,9 @@ MODE MD=CUSTOM;//CUSTOM - режим по умолчанию
 uint8_t STAT_N = 14;
 uint8_t STAT_CYCLE = 5;
 uint8_t BIG_STAT_N;
-uint8_t chan_addrs[8] = {0,1,2,3 ,  7, 6, 5, 4};
+uint8_t chan_addrs[8] = {0,1,2,3 ,  7, 6, 5, 4}; //for any DAC
 int16_t VAC16=0, VAC16_H=0, VAC16_HH=0;
 int16_t prog_val=0;
-//int16_t cnt
 int16_t x16_grad;
 int16_t x16=0;
 int16_t x16_simple;
@@ -75,7 +80,8 @@ char c;
 uint8_t ADC_on;
 uint16_t _adc;
 uint16_t an_cnt=0, an_cnt_fast=0;
-uint8_t reverted[8]={0,0,0,0,0,0,0,0};
+uint8_t reverted[CHAN_N]={0,0,0,0,0,0,0,0, 
+						0,0,0,0,0,0,0,0};
 int ctr;
 
 uint16_t accum;
@@ -126,7 +132,7 @@ void SPI_MasterInit()
 //функция управления ЦАПом 
 // при этом, управление регистром LDAC должно использоваться 
 //вне функции в перспепктиве создания многоканальной схемы
-void prepareSetDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 larger
+void prepareSetDAC(int16_t x,uint8_t chan)//_____________bipolar!!! and <<4 larger
 {
 	x=-x;
 	x+=2048;
@@ -144,14 +150,8 @@ void prepareSetDAC(int16_t x,int8_t chan)//_____________bipolar!!! and <<4 large
 
 void prepareResetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
 {
-    // static int16_t x;
-	//x+=2048;
 	PORTD&=~(1<<SYNC_PINS[chan>>3]);
-	//send8 = (x >> 8);
-	// send8 = 0b00001000;
-	// send8|=(chan_addrs[chan]);
-	SPI_WriteByte(0b00001000|chan_addrs[chan]);
-	// send8=x;
+	SPI_WriteByte(0b00001000|chan_addrs[chan]); // magic numbers, fuck
 	SPI_WriteByte(0);		
 	PORTD|=(1<<SYNC_PINS[chan>>3]);
 }
@@ -290,12 +290,13 @@ void main(void)
 		//set_reverser(i,1);
 	
 	//set_reverser(0,0);
-	for (int i=0;i<8;i++)
+	for (int i=0;i<CHAN_N;i++)
 	{
 		prepareSetDAC(0,i);
 	}
-setDAC();	
-	separMult();
+	setDAC();	
+	
+	//separMult();
 	//пустой цикл программы (главный цикл основан на прерваниях)	
     while(1)
     {
