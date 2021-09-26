@@ -9,7 +9,7 @@
 #include <util/delay.h>
 #define MIG 300 		// МиГ25??
 
-#define CHAN_N 16
+#define CHAN_N 17
 
 #define LDAC PD2
 #define DDR_SPI DDRB
@@ -17,7 +17,7 @@
 #define DD_MOSI PB3
 #define DD_SCK PB5
 #define SPI_SS PB2 	// is it needed?
-uint8_t SYNC_PINS[] = {PD5, PD6};
+uint8_t SYNC_PINS[] = {PD5, PD6, PD7};
 
 #define BAUD 9600                                   
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
@@ -55,7 +55,8 @@ MODE MD=CUSTOM;//CUSTOM - режим по умолчанию
 uint8_t STAT_N = 14;
 uint8_t STAT_CYCLE = 5;
 uint8_t BIG_STAT_N;
-uint8_t chan_addrs[8] = {0,1,2,3 ,  7, 6, 5, 4}; //for any DAC
+uint8_t chan_addrs[8] = {	0,1,2,3 ,  4,5,6,7};  //while for one channel
+								//0,1,2,3 ,  4, 5, 6, 7}; 
 int16_t VAC16=0, VAC16_H=0, VAC16_HH=0;
 int16_t prog_val=0;
 int16_t x16_grad;
@@ -139,7 +140,7 @@ void prepareSetDAC(int16_t x,uint8_t chan)//_____________bipolar!!! and <<4 larg
 	PORTD&=~(1<<SYNC_PINS[chan>>3]);
 	send8 = (x >> 8);
 	send8 &= 0b00001111;
-	send8|=(chan_addrs[chan]);
+	send8|= (chan_addrs[chan%8]);
 	SPI_WriteByte(send8);
 	send8=x;
 	SPI_WriteByte(send8);		
@@ -151,7 +152,7 @@ void prepareSetDAC(int16_t x,uint8_t chan)//_____________bipolar!!! and <<4 larg
 void prepareResetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
 {
 	PORTD&=~(1<<SYNC_PINS[chan>>3]);
-	SPI_WriteByte(0b00001000|chan_addrs[chan]); // magic numbers, fuck
+	SPI_WriteByte(0b00001000|chan_addrs[chan%8]); // magic numbers, fuck
 	SPI_WriteByte(0);		
 	PORTD|=(1<<SYNC_PINS[chan>>3]);
 }
@@ -265,12 +266,12 @@ void main(void)
 {
 	BIG_STAT_N = STAT_N*STAT_CYCLE;
 	
-	for (uint8_t i=0; i<8;i++)
+	for (uint8_t i=0; i< 8;i++)
 		chan_addrs[i]=chan_addrs[i]<<4;
 	
 	PORTC|=0b00000000;
 	DDRC= 0b00011110;
-	DDRD =0b11111110;
+	DDRD =0b11111111;
 	//PORTD|=0b00100000;	
 	DDRB= 0b00011111;
 	sei();

@@ -26,13 +26,17 @@
 bool imitation_on =
         false;
 //                true;
-float V_koef=0.070;
-float I_koef=11.;
+
+//0.070
+float V_koef=0.060;
+
+//11.
+float I_koef=13.;
 using namespace std;
 QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *analyze_btn,
 *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *shots_btn;
 
-#define CHAN_N 16
+#define CHAN_N 17
 
 enum MODE
 {
@@ -340,7 +344,7 @@ MainWindow::MainWindow(QWidget *parent)
     //    chan_le=new QLineEdit("0");
     chan_cb=new QComboBox();
 
-    for (int i =0 ;i<16; i++)
+    for (int i =0 ;i<CHAN_N; i++)
     {
         chan_cb->addItem(QString::number(i+1),i);
     }
