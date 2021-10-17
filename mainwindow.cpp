@@ -36,7 +36,7 @@ using namespace std;
 QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *analyze_btn,
 *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *shots_btn;
 
-#define CHAN_N 17
+#define CHAN_N 20
 
 enum MODE
 {

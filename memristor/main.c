@@ -58,7 +58,7 @@ uint8_t BIG_STAT_N;
 uint8_t chan_addrs[8] = {	0,1,2,3 ,  4,5,6,7};  //while for one channel
 								//0,1,2,3 ,  4, 5, 6, 7}; 
 int16_t VAC16=0, VAC16_H=0, VAC16_HH=0;
-int16_t prog_val=0;
+int16_t proging_val=0;
 int16_t x16_grad;
 int16_t x16=0;
 int16_t x16_simple;
@@ -463,12 +463,15 @@ ISR(TIMER2_OVF_vect)
 
 			if(event_cnt==(2))//ADC GET 
 			{	
+
 				ADCL_=ADCL;	
 				ADCH_=ADCH;
 				UDR0=ADCL_;
 			}
 			
-			if(event_cnt==(3))//ADC GET CONTINUE
+			//ADC make CONTINUE
+			//and set PROGRAM_done
+			if(event_cnt==(3))
 			{	
 				
 				UDR0=ADCH_;
@@ -479,7 +482,7 @@ ISR(TIMER2_OVF_vect)
 				if((adc_h)==(uint16_t)(t1))
 				{
 					PROGRAM_done=1;
-					prog_val=0;
+					proging_val=0;
 				}
 			}
 			
@@ -488,18 +491,18 @@ ISR(TIMER2_OVF_vect)
 				UDR0=255;
 				
 				
-				prog_val+=32;
+				proging_val+=32;
 				
-				if(prog_val==(-x16+32))
-					prog_val=0;
+				if(proging_val==(-x16+32))
+					proging_val=0;
 				else
-				if(prog_val>(t2<<4))
-					prog_val=-x16;
+				if(proging_val>(t2<<4))
+					proging_val= -x16;
 				
 				if(PROGRAM_done)
-					prog_val=0;
+					proging_val=0;
 				
-				prepareSetDAC(prog_val,chan);
+				prepareSetDAC(proging_val,chan);
 				setDAC();
 			}			
 			else if(event_cnt==7)//t1
@@ -778,7 +781,7 @@ ISR(USART_RX_vect)
 		{
 			//PROGRAM_start=1;
 			PROGRAM_done=0;
-			prog_val=0;
+			proging_val=0;
 		}
 		break;
 		
