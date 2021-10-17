@@ -78,20 +78,17 @@ uint8_t ptr=0, UDP_cnt;// WHAAAAT???
 uint8_t PROGRAM_done=0;
 uint8_t chan=0;
 char c;
-uint8_t ADC_on;
 uint16_t _adc;
 uint16_t an_cnt=0, an_cnt_fast=0;
 uint8_t reverted[CHAN_N]={0,0,0,0,0,0,0,0, 
 						0,0,0,0,0,0,0,0};
 int ctr;
 
-uint16_t accum;
 int event_cnt;
 int time_step=6;//3
 int eventN=100;
 int ADC_cnt;
 uint8_t ADCH_, ADCL_, ADCH__, ADCL__;
-uint8_t accum_cnt;
 
 //функция инициализаци АЦП
 //АЦП используется для регистрации тока, проходящего через мемристор
@@ -359,10 +356,7 @@ ISR(TIMER2_OVF_vect)
 			else if(event_cnt==dTt2)
 			{
 			if ( ( UCSR0A & (1<<UDRE0)) )			
-				UDR0=_adc;	
-			accum=0;
-			ADC_on=0;
-			accum_cnt=0;			
+				UDR0=_adc;			
 			//prepareSetDAC(0,chan);
 			//prepareSetDAC(0,2);
 			//setDAC();
@@ -456,11 +450,38 @@ ISR(TIMER2_OVF_vect)
 			T=16;
 			static uint16_t adc_h;
 			
+			//DACset proging val
+			if(event_cnt==0)
+			{
+				UDR0=255;
+				
+				if(PROGRAM_done)
+					proging_val=0;	
+				
+				prepareSetDAC(proging_val,chan);
+				setDAC();
+							
+				if(proging_val == -x16)
+				{
+					proging_val=0;
+				}					
+				else
+				if(proging_val>(t2<<4))
+				{
+					proging_val= -x16;
+				}	
+				else
+				{
+					proging_val+=32;
+				}	
+		
+
+			}			
+			else 
 			if(event_cnt==(1))
 			{	
 				UDR0=PROGRAM_done;
-			}
-
+			}else
 			if(event_cnt==(2))//ADC GET 
 			{	
 
@@ -470,7 +491,8 @@ ISR(TIMER2_OVF_vect)
 			}
 			
 			//ADC make CONTINUE
-			//and set PROGRAM_done
+			//and possibly set PROGRAM_done
+			else
 			if(event_cnt==(3))
 			{	
 				
@@ -479,33 +501,20 @@ ISR(TIMER2_OVF_vect)
 				_adc=(ADCL_|(ADCH_ <<8));
 				adc_h=((uint16_t)(512)-_adc);
 				
-				if((adc_h)==(uint16_t)(t1))
+				//optomization
+				if((adc_h)<(uint16_t)(t1-1))
+				{
+					proging_val = -x16;  //set!
+				}
+				else if((adc_h)<(uint16_t)(t1+2)) //done!
 				{
 					PROGRAM_done=1;
 					proging_val=0;
+					prepareSetDAC(ref16,chan);
+					setDAC();
 				}
-			}
-			
-			if(event_cnt==0)
-			{
-				UDR0=255;
-				
-				
-				proging_val+=32;
-				
-				if(proging_val==(-x16+32))
-					proging_val=0;
-				else
-				if(proging_val>(t2<<4))
-					proging_val= -x16;
-				
-				if(PROGRAM_done)
-					proging_val=0;
-				
-				prepareSetDAC(proging_val,chan);
-				setDAC();
-			}			
-			else if(event_cnt==7)//t1
+			}else		
+			if(event_cnt==7)//t1
 			{
 				prepareSetDAC(0,chan);
 				setDAC();
@@ -516,13 +525,11 @@ ISR(TIMER2_OVF_vect)
 				setDAC();
 			}
 			else if(event_cnt==(9+1))
-				ADCSRA |= (1 << ADSC); 
-
-			else if(event_cnt==14)//
 			{
-				accum=0;
-				ADC_on=0;
-				accum_cnt=0;
+				ADCSRA |= (1 << ADSC); 
+			}		
+			else if(event_cnt==14)//
+			{		
 				
 				prepareSetDAC(0,chan);
 				setDAC();
