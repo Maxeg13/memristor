@@ -502,6 +502,7 @@ ISR(TIMER2_OVF_vect)
 				adc_h=((uint16_t)(512)-_adc);
 				
 				//optomization
+				//put some window val here maybe?
 				if((adc_h)<(uint16_t)(t1-1))
 				{
 					proging_val = -x16;  //set!
