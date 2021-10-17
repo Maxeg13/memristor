@@ -442,8 +442,6 @@ ISR(TIMER2_OVF_vect)
 			
 			UDP_cnt++;
 			UDP_cnt%=5;
-
-			
 		}
 		else if(MD==PROGRAM)
 		{
@@ -474,12 +472,12 @@ ISR(TIMER2_OVF_vect)
 				{
 					proging_val+=32;
 				}	
-		
-
 			}			
 			else 
 			if(event_cnt==(1))
 			{	
+				prepareSetDAC(0,chan);
+				setDAC();
 				UDR0=PROGRAM_done;
 			}else
 			if(event_cnt==(2))//ADC GET 
@@ -491,7 +489,7 @@ ISR(TIMER2_OVF_vect)
 			}
 			
 			//ADC make CONTINUE
-			//and possibly set PROGRAM_done
+			//make decision
 			else
 			if(event_cnt==(3))
 			{	
@@ -501,8 +499,9 @@ ISR(TIMER2_OVF_vect)
 				_adc=(ADCL_|(ADCH_ <<8));
 				adc_h=((uint16_t)(512)-_adc);
 				
-				//optomization
+				//optimization
 				//put some window val here maybe?
+				//be  carefull with -
 				if((adc_h)<(uint16_t)(t1-1))
 				{
 					proging_val = -x16;  //set!
@@ -514,24 +513,24 @@ ISR(TIMER2_OVF_vect)
 					prepareSetDAC(ref16,chan);
 					setDAC();
 				}
-			}else		
-			if(event_cnt==7)//t1
-			{
-				prepareSetDAC(0,chan);
-				setDAC();
 			}
-			else if(event_cnt==9)//dT
+			//else		
+			//if(event_cnt==7)//t1
+			//{
+				//prepareSetDAC(0,chan);
+				//setDAC();
+			//}
+			else if(event_cnt==5)//dT
 			{		
 				prepareSetDAC(ref16,chan);
 				setDAC();
 			}
-			else if(event_cnt==(9+1))
+			else if(event_cnt==(5+1))
 			{
 				ADCSRA |= (1 << ADSC); 
 			}		
-			else if(event_cnt==14)//
-			{		
-				
+			else if(event_cnt==7)//
+			{						
 				prepareSetDAC(0,chan);
 				setDAC();
 			}
@@ -747,17 +746,34 @@ ISR(TIMER2_OVF_vect)
 		ctr=0;
 		
 		
-		if(MD!=ONE_SHOT)
-		{
-		event_cnt++;
-		if(event_cnt>T)
-			event_cnt=0;
-		}
-		else
+		if(MD == ONE_SHOT)
 		{
 			if(event_cnt<16)
-				event_cnt++;			
+				event_cnt++;
 		}
+		else if(MD == PROGRAM)
+		{
+			event_cnt++;
+			if(event_cnt>9)
+				event_cnt = 0;
+		}
+		else{
+			event_cnt++;
+			if(event_cnt>T)
+				event_cnt=0;
+		}
+		
+		//if(MD!=ONE_SHOT)
+		//{
+		//	event_cnt++;
+		//	if(event_cnt>T)
+		//		event_cnt=0;
+		//}
+		//else
+		//{
+		//	if(event_cnt<16)
+		//		event_cnt++;			
+		//}
 	}
 	ctr++;
 }
