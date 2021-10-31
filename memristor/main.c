@@ -448,11 +448,60 @@ ISR(TIMER2_OVF_vect)
 			T=16;
 			static uint16_t adc_h;
 			
-			//DACset proging val
-			if(event_cnt==0)
-			{
+
+			if(event_cnt==0)//dT
+			{		
 				UDR0=255;
+			
+				prepareSetDAC(ref16,chan);
+				setDAC();
+				ADCSRA |= (1 << ADSC); 
+			}
+			else if(event_cnt == 1)
+			{
+				UDR0 =PROGRAM_done;
+			}	
+
+			else
+			if(event_cnt==2)//ADC GET 
+			{					 
+				ADCL_=ADCL;	
+				ADCH_=ADCH;
+				UDR0=ADCL_;   //2
+			}
+			
+			//ADC make CONTINUE
+			//make decision
+			else
+			if(event_cnt==3)
+			{	
 				
+				UDR0=ADCH_; //3
+				
+				_adc=(ADCL_|(ADCH_ <<8));
+				adc_h=((uint16_t)(512)-_adc);
+				
+				//optimization
+				//put some window val here maybe?
+				//be  carefull with -
+				if((adc_h)<(uint16_t)(t1-1))
+				{
+					proging_val = -x16;  //set!
+				}
+				else if((adc_h)<(uint16_t)(t1+2)) //done!
+				{
+
+					PROGRAM_done=1;
+					proging_val=0;
+					prepareSetDAC(ref16,chan);
+					setDAC();
+				}
+				
+			}
+			//DACset proging val
+			else if(event_cnt==4)
+			{
+				UDR0 =DUMMY_BYTE;		
 				if(PROGRAM_done)
 					proging_val=0;	
 				
@@ -472,75 +521,23 @@ ISR(TIMER2_OVF_vect)
 				{
 					proging_val+=32;
 				}	
-			}			
-			else 
-			if(event_cnt==(1))
+			}
+			else if(event_cnt==5)//
 			{	
+				UDR0 =DUMMY_BYTE;			
 				prepareSetDAC(0,chan);
 				setDAC();
-				UDR0=PROGRAM_done;
-			}else
-			if(event_cnt==(2))//ADC GET 
-			{	
-
-				ADCL_=ADCL;	
-				ADCH_=ADCH;
-				UDR0=ADCL_;
 			}
 			
-			//ADC make CONTINUE
-			//make decision
-			else
-			if(event_cnt==(3))
-			{	
-				
-				UDR0=ADCH_;
-				
-				_adc=(ADCL_|(ADCH_ <<8));
-				adc_h=((uint16_t)(512)-_adc);
-				
-				//optimization
-				//put some window val here maybe?
-				//be  carefull with -
-				if((adc_h)<(uint16_t)(t1-1))
-				{
-					proging_val = -x16;  //set!
-				}
-				else if((adc_h)<(uint16_t)(t1+2)) //done!
-				{
-					PROGRAM_done=1;
-					proging_val=0;
-					prepareSetDAC(ref16,chan);
-					setDAC();
-				}
-			}
-			//else		
-			//if(event_cnt==7)//t1
-			//{
-				//prepareSetDAC(0,chan);
-				//setDAC();
-			//}
-			else if(event_cnt==5)//dT
-			{		
-				prepareSetDAC(ref16,chan);
-				setDAC();
-			}
-			else if(event_cnt==(5+1))
-			{
-				ADCSRA |= (1 << ADSC); 
-			}		
-			else if(event_cnt==7)//
-			{						
-				prepareSetDAC(0,chan);
-				setDAC();
-			}
+			
+
 		}
 		else if(MD == ONE_SHOT)
 		{
 			//готовим reset
 				if(event_cnt==1){
 				separMult();
-			}//resetting
+			}//reseting
 			else if(event_cnt==2)
 			{
 				prepareSetDAC(reset16,CHAN_4);
@@ -754,7 +751,7 @@ ISR(TIMER2_OVF_vect)
 		else if(MD == PROGRAM)
 		{
 			event_cnt++;
-			if(event_cnt>9)
+			if(event_cnt>8)
 				event_cnt = 0;
 		}
 		else{

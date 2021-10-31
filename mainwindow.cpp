@@ -524,7 +524,7 @@ void MainWindow::Serial_get()
             {
             case 0:
                 if((uint8_t)buf[i]!=255)
-                    ptr=2;
+                    ptr=4;
                 break;
             case 1:
                 buf1=buf[i];
@@ -536,10 +536,10 @@ void MainWindow::Serial_get()
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 curveADC->signalDrawing(I_koef);
                 break;
-
             }
+
             ptr++;
-            ptr%=3;
+            ptr%=5;
 
         }
         else if(MD==VAC)//VAC
@@ -551,13 +551,10 @@ void MainWindow::Serial_get()
             //            set_plot->setAxisAutoScale()
             switch(ptr)
             {
-
             case 0:
                 if((uint8_t)buf[i]!=255)
                 {
-                    //                    qDebug()<<"hello";
                     ptr=4;
-
                 }
                 //                qDebug()<<"\nc:";
                 break;
@@ -613,9 +610,6 @@ void MainWindow::Serial_get()
 
                 setCurve->set_Drawing(voltage,current,voltage_ind,current_ind);
                 break;
-            case 4:
-                //DUMMY
-                break;
 
             }
             ptr++;
@@ -630,9 +624,7 @@ void MainWindow::Serial_get()
             case 0:
                 if((uint8_t)buf[i]!=255)
                 {
-
-                    ptr=3;
-                    ptr%=4;
+                    ptr=4;
                 }
                 break;
             case 1:
@@ -659,10 +651,12 @@ void MainWindow::Serial_get()
 
                 curveADC->signalDrawing(I_koef);
                 break;
+            case 4:
+                break;
 
             }
             ptr++;
-            ptr%=4;
+            ptr%=5;
         }
         else if(MD==ONE_SHOT)
         {
@@ -718,7 +712,6 @@ void MainWindow::Serial_get()
                 if((uint8_t)buf[i]!=255)
                 {
                     ptr=4;
-                    ptr%=5;
                 }
                 break;
 
