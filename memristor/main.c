@@ -9,7 +9,7 @@
 #include <util/delay.h>
 #define MIG 300 		// МиГ25??
 
-#define CHAN_N 17
+#define CHAN_N 32
 
 #define LDAC PD2
 #define DDR_SPI DDRB
@@ -17,7 +17,8 @@
 #define DD_MOSI PB3
 #define DD_SCK PB5
 #define SPI_SS PB2 	// is it needed?
-uint8_t SYNC_PINS[] = {PD5, PD6, PD7};
+uint8_t* REGS_OUT[] = {&PORTD, &PORTD, &PORTD, &PORTC};
+uint8_t SYNC_PINS[] = {PD5, PD6, PD7, PC4};
 
 #define BAUD 9600                                   
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
@@ -52,7 +53,7 @@ typedef enum
 //PROGRAM - режим программирования проводимости мемристора
 MODE MD=CUSTOM;//CUSTOM - режим по умолчанию
 
-uint8_t STAT_N = 14;
+uint8_t STAT_N = 17;
 uint8_t STAT_CYCLE = 5;
 uint8_t BIG_STAT_N;
 uint8_t chan_addrs[8] = {	0,1,2,3 ,  4,5,6,7};  //while for one channel
@@ -81,7 +82,8 @@ char c;
 uint16_t _adc;
 uint16_t an_cnt=0, an_cnt_fast=0;
 uint8_t reverted[CHAN_N]={0,0,0,0,0,0,0,0, 
-						0,0,0,0,0,0,0,0};
+						0,0,0,0,0,0,0,0,
+						0};
 int ctr;
 
 int event_cnt;
@@ -89,6 +91,7 @@ int time_step=6;//3
 int eventN=100;
 int ADC_cnt;
 uint8_t ADCH_, ADCL_, ADCH__, ADCL__;
+//uint
 
 //функция инициализаци АЦП
 //АЦП используется для регистрации тока, проходящего через мемристор
@@ -134,14 +137,14 @@ void prepareSetDAC(int16_t x,uint8_t chan)//_____________bipolar!!! and <<4 larg
 {
 	x=-x;
 	x+=2048;
-	PORTD&=~(1<<SYNC_PINS[chan>>3]);
+	*(REGS_OUT[chan>>3])&=~(1<<SYNC_PINS[chan>>3]);
 	send8 = (x >> 8);
 	send8 &= 0b00001111;
 	send8|= (chan_addrs[chan%8]);
 	SPI_WriteByte(send8);
 	send8=x;
 	SPI_WriteByte(send8);		
-	PORTD|=(1<<SYNC_PINS[chan>>3]);
+	*(REGS_OUT[chan>>3])|=(1<<SYNC_PINS[chan>>3]);
 
 }
 
@@ -484,11 +487,11 @@ ISR(TIMER2_OVF_vect)
 				//optimization
 				//put some window val here maybe?
 				//be  carefull with -
-				if((adc_h)<(uint16_t)(t1-1))
+				if((adc_h)<(uint16_t)(t1))
 				{
 					proging_val = -x16;  //set!
 				}
-				else if((adc_h)<(uint16_t)(t1+2)) //done!
+				else if((adc_h)<(uint16_t)(t1+1)) //done!
 				{
 
 					PROGRAM_done=1;

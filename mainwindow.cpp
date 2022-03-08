@@ -31,12 +31,12 @@ bool imitation_on =
 float V_koef=0.060;
 
 //11.
-float I_koef=13.;
+float I_koef=6.5;
 using namespace std;
 QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *analyze_btn,
 *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *shots_btn;
 
-#define CHAN_N 20
+#define CHAN_N 32
 
 enum MODE
 {
@@ -619,6 +619,7 @@ void MainWindow::Serial_get()
         }
         else if(MD==PROGRAM)
         {
+            static uint8_t  _PROGRAM_done=0;
             switch(ptr)
             {
             case 0:
@@ -629,7 +630,7 @@ void MainWindow::Serial_get()
                 break;
             case 1:
 
-
+                _PROGRAM_done = PROGRAM_done;
                 PROGRAM_done=(uint8_t)buf[i];
                 if(PROGRAM_done)
                 {
@@ -648,7 +649,9 @@ void MainWindow::Serial_get()
                 ind_c=(ind_c+1)%data_adc.size();
 
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
-
+                if(!_PROGRAM_done && PROGRAM_done)
+                    qDebug()<<data_adc[ind_c]*I_koef;
+//                qDebug()<<data_adc[ind_c];
                 curveADC->signalDrawing(I_koef);
                 break;
             case 4:
