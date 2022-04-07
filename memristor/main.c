@@ -9,16 +9,15 @@
 #include <util/delay.h>
 #define MIG 300 		// МиГ25??
 
-#define CHAN_N 32
+#define CHAN_N 64
 
 #define LDAC PD2
 #define DDR_SPI DDRB
 #define DD_MISO PB4
 #define DD_MOSI PB3
 #define DD_SCK PB5
-#define SPI_SS PB2 	// is it needed?
-uint8_t* REGS_OUT[] = {&PORTD, &PORTD, &PORTD, &PORTC};
-uint8_t SYNC_PINS[] = {PD5, PD6, PD7, PC4};
+#define SPI_SS PB2 
+
 
 #define BAUD 9600                                   
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
@@ -52,6 +51,12 @@ typedef enum
 //VAC - режим вольт-амперной характеристики
 //PROGRAM - режим программирования проводимости мемристора
 MODE MD=CUSTOM;//CUSTOM - режим по умолчанию
+
+uint8_t* REGS_OUT[] = {&PORTD, &PORTD, &PORTD, &PORTB, 
+						&PORTB, &PORTC, &PORTC, &PORTC};
+						
+uint8_t SYNC_PINS[] = {PD5, PD6, PD7, PB0,
+						PB1, PC2, PC3, PC4};
 
 uint8_t STAT_N = 17;
 uint8_t STAT_CYCLE = 5;
@@ -126,7 +131,7 @@ void uart_init(unsigned int ubrr)
 //функция инициализации SPI
 void SPI_MasterInit()
 {
-	DDR_SPI = (1<<DD_MOSI)|(1<<DD_SCK)|(1<<SPI_SS);
+	DDR_SPI |= (1<<DD_MOSI)|(1<<DD_SCK)|(1<<SPI_SS);
 	SPCR = (1<<SPE)|(0<<DORD)|(1<<MSTR)|(1<<CPOL)|(0<<CPHA);//|(1<<SPR1)|(0<<SPR0);
 }
 
@@ -173,7 +178,7 @@ void gatherMult()
 }
 void separMult()
 {
-	reset_BYTE(PORTB, 1);
+	//reset_BYTE(PORTB, 1);
 	reset_BYTE(PORTB, 2);
 	reset_BYTE(PORTC, 1);
 	
@@ -269,15 +274,12 @@ void main(void)
 	for (uint8_t i=0; i< 8;i++)
 		chan_addrs[i]=chan_addrs[i]<<4;
 	
-	PORTC|=0b00000000;
 	DDRC= 0b00011110;
-	DDRD =0b11111111;
-	//PORTD|=0b00100000;	
+	DDRD =0b11111111;	
 	DDRB= 0b00011111;
 	sei();
 	SPI_MasterInit();
 	timer_init();
-    //DDRD = 0b000001100;	
 	
 	uart_init(BAUDRATE);
 	ADC_Init();
@@ -301,8 +303,10 @@ void main(void)
 	//пустой цикл программы (главный цикл основан на прерваниях)	
     while(1)
     {
-
-		//_delay_ms(1000);
+//	PORTB|=3;
+//	_delay_ms(20);
+//	PORTB&=~3;
+//	_delay_ms(20);
 		//PORTD=PORTD^(PORTD&(1<<6));
 		//PORTD=0xFF^PORTD;
     }
