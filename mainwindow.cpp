@@ -1,7 +1,12 @@
 //v1 , v2 are positive for VAC_mode (convert to -v1 and v2)
 //20 us to 3.5 ms , 1V to 5V
 
-//
+
+//1         9
+//17        25
+//33        41
+//49        57
+
 #include "mainwindow.h"
 #include <QtSerialPort>
 #include <QComboBox>
@@ -21,17 +26,17 @@
 #include <QKeyEvent>
 #include <QMovie>
 #include <map>
-//#include <pair>
 
 bool imitation_on =
         false;
 //                true;
 
 //0.070
-float V_koef=0.060;
+//0.06
+float V_koef=0.1;
 
 //11.
-float I_koef=6.5;
+float I_koef=5.7;
 using namespace std;
 QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *analyze_btn,
 *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *shots_btn;
@@ -46,7 +51,8 @@ enum MODE
     GATHER_MULT,
     SEPAR_MULT,
     ONE_SHOT,
-    ANALYZE
+    ANALYZE,
+    THETA
 };
 
 MODE MD;
@@ -69,6 +75,7 @@ int ind_c1;
 int ind_c2;
 QLabel* V_set_label;
 QLabel* V_pl_max_label;
+QLabel* theta_label;
 QLineEdit* serial_le;
 QSlider* V_pl_max_slider;
 QSlider* V_set_slider;
@@ -83,6 +90,7 @@ QLineEdit* T_le;
 QLabel* VAC_min_label;
 QLabel* VAC_max_label;
 QSlider* targ_slider;
+QSlider* theta_slider;
 QSlider* VAC_min_slider;
 int VAC_min[CHAN_N];
 int VAC_max[CHAN_N];
@@ -274,6 +282,8 @@ MainWindow::MainWindow(QWidget *parent)
     targ_label=new QLabel("targ");
     V_pl_max_label= new QLabel("V+max: ");
 
+    theta_label = new QLabel("theta: ");
+
     QLabel* dT_label=new QLabel("dT");
     dT_label->setMaximumWidth(labels_width);
 
@@ -316,7 +326,10 @@ MainWindow::MainWindow(QWidget *parent)
     V_ref_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_max_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_min_slider=new QSlider(Qt::Orientation::Horizontal);
-    vector<QSlider*> sliders={V_reset_slider, VAC_mini_slider, V_pl_max_slider, targ_slider, V_set_slider, VAC_min_slider, VAC_max_slider, V_ref_slider};
+    theta_slider=new QSlider(Qt::Orientation::Horizontal);
+    vector<QSlider*> sliders={V_reset_slider, VAC_mini_slider, V_pl_max_slider,
+                              targ_slider, V_set_slider, VAC_min_slider, VAC_max_slider,
+                              V_ref_slider, theta_slider};
     for(auto& a:sliders)
     {
         a->setTickInterval(2);
@@ -330,6 +343,7 @@ MainWindow::MainWindow(QWidget *parent)
     V_set_slider->setValue(20);
     targ_slider->setRange(0,60);
     VAC_mini_slider->setRange(0,30);
+    theta_slider->setRange(-126, 126);
 
 
     serial_le=new QLineEdit("COM3");
@@ -395,6 +409,8 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(V_pl_max_label, 6,4);
     lt->addWidget(V_pl_max_slider, 6,5);
 
+    lt->addWidget(theta_label,7,4);
+    lt->addWidget(theta_slider,7,5);
 
 
 
@@ -419,6 +435,7 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(VAC_check,6,6);
     lt->addWidget(VAC_mini_slider,6,7);
 
+
     //-----------------------------
     lt->addWidget(write_check, 2,0,1,2);
 
@@ -440,12 +457,12 @@ MainWindow::MainWindow(QWidget *parent)
     //    lt->addWidget(filler_btn1,7,2);
 
 
-    lt->addWidget(cur_plot,7,0,1,4);
+    lt->addWidget(cur_plot,8,0,1,4);
 
     if(!imitation_on)
-        lt->addWidget(set_plot,7,4,1,4);
+        lt->addWidget(set_plot,8,4,1,4);
     else
-        lt->addWidget(imit_label,7,4,1,4);
+        lt->addWidget(imit_label,8,4,1,4);
 
     //    set_plot->setMaximumWidth(500);
 
@@ -464,6 +481,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(T_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(VAC_mini_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     connect(targ_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
+    connect(theta_slider, SIGNAL(sliderReleased()),this,SLOT(oneSend()));
 
 
     serial_get_timer.setInterval(5);
@@ -982,6 +1000,7 @@ void MainWindow::oneSend()
     reset_label->setText("V reset: "+QString().setNum(V_koef*V_reset_slider->value(), 'g',2));
     V_ref_label->setText("Ref: "+QString().setNum(V_koef*V_ref_slider->value(), 'g',2));
     VAC_check->setText("check: "+QString().setNum(V_koef*VAC_mini_slider->value(), 'g',2));
+    theta_label->setText("theta: "+QString().setNum(V_koef*theta_slider->value(), 'g',2));
 
     c=255;
     port.write(&c,1);

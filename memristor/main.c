@@ -1,5 +1,4 @@
 //#NEW PINOUT WITH MULTIPLEXING
-//PB2 Problem
 // enum chans? (for code reading)
 
 
@@ -7,27 +6,11 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-#define MIG 300 		// МиГ25??
+#define MIG 300
 
-#define CHAN_N 64
+#include "utils.h"
 
-#define LDAC PD2
-#define DDR_SPI DDRB
-#define DD_MISO PB4
-#define DD_MOSI PB3
-#define DD_SCK PB5
-#define SPI_SS PB2 
-
-
-#define BAUD 9600                                   
-#define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
-#define SET_BYTE(port, pos) port|=(1<<pos)
-#define reset_BYTE(port, pos) port&=~(1<<pos)
-#define DUMMY_BYTE 0
-
-
-
-//три возможных режима
+// режимы
 typedef enum
 {
 	CUSTOM,
@@ -36,7 +19,8 @@ typedef enum
 	GATHER_MULT,
 	SEPAR_MULT,
 	ONE_SHOT,
-	ANALYZE
+	ANALYZE,
+	MODE_SET
 } MODE;
 
 typedef enum
@@ -52,18 +36,14 @@ typedef enum
 //PROGRAM - режим программирования проводимости мемристора
 MODE MD=CUSTOM;//CUSTOM - режим по умолчанию
 
-uint8_t* REGS_OUT[] = {&PORTD, &PORTD, &PORTD, &PORTB, 
-						&PORTB, &PORTC, &PORTC, &PORTC};
-						
-uint8_t SYNC_PINS[] = {PD5, PD6, PD7, PB0,
-						PB1, PC2, PC3, PC4};
+
 
 uint8_t STAT_N = 17;
 uint8_t STAT_CYCLE = 5;
 uint8_t BIG_STAT_N;
-uint8_t chan_addrs[8] = {	0,1,2,3 ,  4,5,6,7};  //while for one channel
+
 								//0,1,2,3 ,  4, 5, 6, 7}; 
-int16_t VAC16=0, VAC16_H=0, VAC16_HH=0;
+int16_t voltage16=0, voltage16_h=0, voltage16_hh=0;
 int16_t proging_val=0;
 int16_t x16_grad;
 int16_t x16=0;
@@ -79,7 +59,6 @@ uint8_t T;
 uint8_t pos_phase=1;
 uint8_t STAT_dt_step=0;
 uint8_t STAT_V_step=0;
-uint8_t send8;
 uint8_t ptr=0, UDP_cnt;// WHAAAAT???
 uint8_t PROGRAM_done=0;
 uint8_t chan=0;
@@ -97,6 +76,25 @@ int eventN=100;
 int ADC_cnt;
 uint8_t ADCH_, ADCL_, ADCH__, ADCL__;
 //uint
+
+//функция управления ЦАПом 
+// при этом, управление регистром LDAC должно использоваться 
+//вне функции в перспепктиве создания многоканальной схемы
+void prepareSetDAC(int16_t x,uint8_t chan)//_____________bipolar!!! and <<4 larger
+{
+	static uint8_t send8;
+	
+	x=-x;
+	x+=2048;
+	*(REGS_OUT[chan>>3])&=~(1<<SYNC_PINS[chan>>3]);
+	send8 = (x >> 8);
+	send8 &= 0b00001111;
+	send8|= (chan_addrs[chan%8]);
+	SPI_WriteByte(send8);
+	send8=x;
+	SPI_WriteByte(send8);		
+	*(REGS_OUT[chan>>3])|=(1<<SYNC_PINS[chan>>3]);
+}
 
 //функция инициализаци АЦП
 //АЦП используется для регистрации тока, проходящего через мемристор
@@ -135,23 +133,7 @@ void SPI_MasterInit()
 	SPCR = (1<<SPE)|(0<<DORD)|(1<<MSTR)|(1<<CPOL)|(0<<CPHA);//|(1<<SPR1)|(0<<SPR0);
 }
 
-//функция управления ЦАПом 
-// при этом, управление регистром LDAC должно использоваться 
-//вне функции в перспепктиве создания многоканальной схемы
-void prepareSetDAC(int16_t x,uint8_t chan)//_____________bipolar!!! and <<4 larger
-{
-	x=-x;
-	x+=2048;
-	*(REGS_OUT[chan>>3])&=~(1<<SYNC_PINS[chan>>3]);
-	send8 = (x >> 8);
-	send8 &= 0b00001111;
-	send8|= (chan_addrs[chan%8]);
-	SPI_WriteByte(send8);
-	send8=x;
-	SPI_WriteByte(send8);		
-	*(REGS_OUT[chan>>3])|=(1<<SYNC_PINS[chan>>3]);
 
-}
 
 
 void prepareResetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
@@ -162,33 +144,6 @@ void prepareResetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
 	PORTD|=(1<<SYNC_PINS[chan>>3]);
 }
 
-			
-void gatherMult()
-{
-	reset_BYTE(PORTD, 6);
-	reset_BYTE(PORTD, 7);				
-	reset_BYTE(PORTD, 5);
-	reset_BYTE(PORTC, 4);
-	
-	
-	SET_BYTE(PORTC, 1);				
-	SET_BYTE(PORTB, 2);
-	SET_BYTE(PORTB, 1);
-	SET_BYTE(PORTB, 0);
-}
-void separMult()
-{
-	//reset_BYTE(PORTB, 1);
-	reset_BYTE(PORTB, 2);
-	reset_BYTE(PORTC, 1);
-	
-	SET_BYTE(PORTC, 4);						
-	SET_BYTE(PORTD, 6);
-	SET_BYTE(PORTD, 7);
-	SET_BYTE(PORTB, 0);
-	SET_BYTE(PORTD, 5);
-}
-
 
 
 void SPI_WriteByte(uint8_t data)
@@ -197,69 +152,6 @@ void SPI_WriteByte(uint8_t data)
   while(!(SPSR & (1<<SPIF)));
 }
 
-void set_reverser(uint8_t ind, uint8_t x)
-{
-	if(0)
-	switch(ind)
-	{
-		case 0:  
-		if(x)
-			PORTD|=(1<<5);
-		else
-			PORTD&=~(1<<5);
-		break;
-		
-				case 1:  
-		if(x)
-			PORTD|=(1<<6);
-		else
-			PORTD&=~(1<<6);
-		break;
-		
-				case 2:  
-		if(x)
-			PORTD|=(1<<7);
-		else
-			PORTD&=~(1<<7);
-		break;
-		
-				case 3:  
-		if(x)
-			PORTB|=(1<<0);
-		else
-			PORTB&=~(1<<0);
-		break;
-		
-				case 4:  
-		if(x)
-			PORTB|=(1<<1);
-		else
-			PORTB&=~(1<<1);
-		break;
-		
-				case 5:  
-		if(x)
-			PORTB|=(1<<2);
-		else
-			PORTB&=~(1<<2);
-		break;
-		
-				case 6:  
-		if(x)
-			PORTC|=(1<<2);
-		else
-			PORTC&=~(1<<2);
-		break;
-		
-				case 7:  
-		if(x)
-			PORTB|=(1<<4);
-		else
-			PORTB&=~(1<<4);
-		break;
-
-	}
-}
 
 void setDAC(){
 	PORTD&=~(1<<LDAC);
@@ -371,10 +263,13 @@ ISR(TIMER2_OVF_vect)
 			}		
 
 		}
+		else if(MD == MODE_SET) {
+			
+		}
 		else if(MD==VAC)
 		{			
-			static int i=0;
-			i++;						
+			//static int i=0;
+			//i++;						
 			
 			switch(UDP_cnt)
 			{
@@ -396,23 +291,20 @@ ISR(TIMER2_OVF_vect)
 				break;
 				
 				case 2:
-				UDR0=ADCH_;
+				UDR0=ADCH_;				
+				break;				
 				
-				break;
-				
-				
-				case 3:
-								
-					//VAC16_HH=VAC16_H;
-					VAC16_H=VAC16;
+				case 3:								
+					
+					voltage16_h=voltage16;
 					
 					if(pos_phase)
 					{
 								//PORTC=0b00000010;
 			//PORTB=0b00011111;
 			//PORTD=0b11101100;
-						VAC16+=32;
-						if(VAC16>(ref16-1))
+						voltage16+=32;
+						if(voltage16>(ref16-1))
 						{
 						pos_phase=0;				
 						}
@@ -422,8 +314,8 @@ ISR(TIMER2_OVF_vect)
 						//PORTB=0;
 			//PORTC=0;
 			//PORTD=0;
-						VAC16-=32;
-						if(VAC16<(-x16+1))
+						voltage16-=32;
+						if(voltage16<(-x16+1))
 						{
 						pos_phase=1;									
 						}
@@ -431,15 +323,15 @@ ISR(TIMER2_OVF_vect)
 					
 					
 					
-					UDR0=VAC16>>4;
-					prepareSetDAC(VAC16,chan);
-					//prepareSetDAC(VAC16,1);
-					//prepareSetDAC(VAC16,2);
-					//prepareSetDAC(VAC16,3);
-					//prepareSetDAC(VAC16,4);
-					//prepareSetDAC(VAC16,5);
-					//prepareSetDAC(VAC16,6);
-					//prepareSetDAC(VAC16,7);				
+					UDR0=voltage16>>4;
+					prepareSetDAC(voltage16,chan);
+					//prepareSetDAC(voltage16,1);
+					//prepareSetDAC(voltage16,2);
+					//prepareSetDAC(voltage16,3);
+					//prepareSetDAC(voltage16,4);
+					//prepareSetDAC(voltage16,5);
+					//prepareSetDAC(voltage16,6);
+					//prepareSetDAC(voltage16,7);				
 					setDAC();
 				case 4:
 					UDR0=DUMMY_BYTE;	

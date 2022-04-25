@@ -1,1 +1,3 @@
-main.o: main.c
+main.o: main.c utils.h
+
+utils.h:
