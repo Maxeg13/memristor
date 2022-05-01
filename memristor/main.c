@@ -10,6 +10,8 @@
 
 #include "utils.h"
 
+
+
 // режимы
 typedef enum
 {
@@ -86,14 +88,15 @@ void prepareSetDAC(int16_t x,uint8_t chan)//_____________bipolar!!! and <<4 larg
 	
 	x=-x;
 	x+=2048;
-	*(REGS_OUT[chan>>3])&=~(1<<SYNC_PINS[chan>>3]);
+	//*(REGS_OUT[chan>>3])&=~(1<<SYNC_PINS[chan>>3]);
+	reset_pin(SYNC_PINS[chan>>3]);
 	send8 = (x >> 8);
 	send8 &= 0b00001111;
 	send8|= (chan_addrs[chan%8]);
 	SPI_WriteByte(send8);
 	send8=x;
 	SPI_WriteByte(send8);		
-	*(REGS_OUT[chan>>3])|=(1<<SYNC_PINS[chan>>3]);
+	set_pin(SYNC_PINS[chan>>3]);
 }
 
 //функция инициализаци АЦП
@@ -138,10 +141,10 @@ void SPI_MasterInit()
 
 void prepareResetDAC(int8_t chan)//_____________bipolar!!! and <<4 larger
 {
-	PORTD&=~(1<<SYNC_PINS[chan>>3]);
+	reset_pin(SYNC_PINS[chan>>3]);
 	SPI_WriteByte(0b00001000|chan_addrs[chan%8]); // magic numbers, fuck
 	SPI_WriteByte(0);		
-	PORTD|=(1<<SYNC_PINS[chan>>3]);
+	set_pin(SYNC_PINS[chan>>3]);
 }
 
 

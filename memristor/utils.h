@@ -1,6 +1,8 @@
 #ifndef PARAMS
 #define PARAMS
 
+//pd3 <-> pd5
+
 #define CHAN_N 64
 #define LDAC PD2
 #define DDR_SPI DDRB
@@ -11,46 +13,54 @@
 
 #define BAUD 9600                                   
 #define BAUDRATE ((F_CPU)/(BAUD*2*16UL)-1)//16UL
-#define SET_BIT(port, pos) port|=(1<<pos)
-#define RESET_BIT(port, pos) port&=~(1<<pos)
+#define SET_PIN(port, pos) port|=(1<<pos)
+#define RESET_PIN(port, pos) port&=~(1<<pos)
 #define DUMMY_BYTE 0
 
 #include <avr/io.h>
 
 uint8_t chan_addrs[8] = {	0,1,2,3 ,  4,5,6,7};  //while for one channel
 
-uint8_t* REGS_OUT[] = {&PORTD, &PORTD, &PORTD, &PORTB, 
-						&PORTB, &PORTC, &PORTC, &PORTC};
-						
-uint8_t SYNC_PINS[] = {PD5, PD6, PD7, PB0, 		//pd3 for multiplex or pd5
-						PB1, PC2, PC3, PC4};
-						
+struct Pin_t {
+	uint8_t* reg_out;
+	uint8_t pin;
+};
+					
+struct Pin_t SYNC_PINS[] = {	{&PORTD, PD3}, {&PORTD, PD6}, {&PORTD, PD7}, {&PORTB, PB0}, 		//pd3 for multiplexing or pd5 for 64
+						{&PORTB, PB1}, {&PORTC, PC2}, {&PORTC, PC3}, {&PORTC, PC4} };
 
-			
+void set_pin(struct Pin_t pin) {
+	SET_PIN(*pin.reg_out, pin.pin);
+}
+
+void reset_pin(struct Pin_t pin) {
+	RESET_PIN(*pin.reg_out, pin.pin);
+}
+						
 void gatherMult()
 {
-	RESET_BIT(PORTD, 6);
-	RESET_BIT(PORTD, 7);				
-	RESET_BIT(PORTD, 5);
-	RESET_BIT(PORTC, 4);
+	RESET_PIN(PORTD, 6);
+	RESET_PIN(PORTD, 7);				
+	RESET_PIN(PORTD, 5);
+	RESET_PIN(PORTC, 4);
 	
 	
-	SET_BIT(PORTC, 1);				
-	SET_BIT(PORTB, 2);
-	SET_BIT(PORTB, 1);
-	SET_BIT(PORTB, 0);
+	SET_PIN(PORTC, 1);				
+	SET_PIN(PORTB, 2);
+	SET_PIN(PORTB, 1);
+	SET_PIN(PORTB, 0);
 }
 void separMult()
 {
-	//RESET_BIT(PORTB, 1);
-	(PORTB, 2);
-	RESET_BIT(PORTC, 1);
+	//RESET_PIN(PORTB, 1);
+	RESET_PIN(PORTB, 2);
+	RESET_PIN(PORTC, 1);
 	
-	SET_BIT(PORTC, 4);						
-	SET_BIT(PORTD, 6);
-	SET_BIT(PORTD, 7);
-	SET_BIT(PORTB, 0);
-	SET_BIT(PORTD, 5);
+	SET_PIN(PORTC, 4);						
+	SET_PIN(PORTD, 6);
+	SET_PIN(PORTD, 7);
+	SET_PIN(PORTB, 0);
+	SET_PIN(PORTD, 5);
 }
 
 
