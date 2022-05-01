@@ -88,15 +88,15 @@ void prepareSetDAC(int16_t x,uint8_t chan)//_____________bipolar!!! and <<4 larg
 	
 	x=-x;
 	x+=2048;
-	//*(REGS_OUT[chan>>3])&=~(1<<SYNC_PINS[chan>>3]);
-	reset_pin(SYNC_PINS[chan>>3]);
+	uint8_t DAC = chan>>3;
+	reset_pin(SYNC_PINS[DAC]);
 	send8 = (x >> 8);
 	send8 &= 0b00001111;
 	send8|= (chan_addrs[chan%8]);
 	SPI_WriteByte(send8);
 	send8=x;
 	SPI_WriteByte(send8);		
-	set_pin(SYNC_PINS[chan>>3]);
+	set_pin(SYNC_PINS[DAC]);
 }
 
 //функция инициализаци АЦП
@@ -194,7 +194,7 @@ void main(void)
 	}
 	setDAC();	
 	
-	//separMult();
+	//usualMult();
 	//пустой цикл программы (главный цикл основан на прерваниях)	
     while(1)
     {
@@ -438,7 +438,7 @@ ISR(TIMER2_OVF_vect)
 		{
 			//готовим reset
 				if(event_cnt==1){
-				separMult();
+				usualMult();
 			}//reseting
 			else if(event_cnt==2)
 			{
@@ -472,7 +472,7 @@ ISR(TIMER2_OVF_vect)
 			else if(event_cnt==7)
 			{
 				UDR0=255;//1
-				separMult();				
+				usualMult();				
 			}			
 			else if(event_cnt==8)
 			{
@@ -754,7 +754,7 @@ ISR(USART_RX_vect)
 			}
 			else if(MD==SEPAR_MULT)	
 			{
-			separMult();	
+			usualMult();	
 			}
 			if(MD == ONE_SHOT)
 			{
