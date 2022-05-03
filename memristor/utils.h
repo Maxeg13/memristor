@@ -19,7 +19,7 @@
 
 #include <avr/io.h>
 
-uint8_t chan_addrs[8] = {	0,1,2,3 ,  4,5,6,7};  //while for one channel
+uint8_t chan_addrs[8];  //for one DAC, be i<<4 lower
 
 struct Pin_t {
 	uint8_t* reg_out;
@@ -27,7 +27,7 @@ struct Pin_t {
 };
 					
 struct Pin_t SYNC_PINS[] = {	{&PORTD, PD3}, {&PORTD, PD6}, {&PORTD, PD7}, {&PORTB, PB0}, 		//pd3 for multiplexing or pd5 for 64
-						{&PORTB, PB1}, {&PORTC, PC2}, {&PORTC, PC3}, {&PORTC, PC4} };
+								{&PORTB, PB1}, {&PORTC, PC2}, {&PORTC, PC3}, {&PORTC, PC4} };
 						
 						
 void set_pin(struct Pin_t pin) {
@@ -42,7 +42,8 @@ struct Pin_t sep1_pin = {&PORTD, 5};
 struct Pin_t sep2_pin = {&PORTD, 6};
 struct Pin_t sep3_pin = {&PORTD, 7};	
 struct Pin_t sep4_pin = {&PORTB, 0};
-struct Pin_t resister_pin = {&PORTC, 4};		
+struct Pin_t resister_pin = {&PORTC, 4};
+		
 void gatherMult()
 {
 	reset_pin(sep2_pin);
@@ -59,6 +60,7 @@ void gatherMult()
 	
 	set_pin(sep4_pin);
 }
+
 void usualMult()
 {
 	RESET_PIN(PORTB, 1);

@@ -61,7 +61,7 @@ uint8_t T;
 uint8_t pos_phase=1;
 uint8_t STAT_dt_step=0;
 uint8_t STAT_V_step=0;
-uint8_t ptr=0, UDP_cnt;// WHAAAAT???
+uint8_t ptr=0, VAC_cnt;// WHAAAAT???
 uint8_t PROGRAM_done=0;
 uint8_t chan=0;
 char c;
@@ -167,7 +167,7 @@ void main(void)
 	BIG_STAT_N = STAT_N*STAT_CYCLE;
 	
 	for (uint8_t i=0; i< 8;i++)
-		chan_addrs[i]=chan_addrs[i]<<4;
+		chan_addrs[i] = i<<4;
 	
 	DDRC= 0b00011110;
 	DDRD =0b11111111;	
@@ -274,7 +274,7 @@ ISR(TIMER2_OVF_vect)
 			//static int i=0;
 			//i++;						
 			
-			switch(UDP_cnt)
+			switch(VAC_cnt)
 			{
 				case 0:					
 				 ADCSRA |= (1 << ADSC); 
@@ -342,8 +342,8 @@ ISR(TIMER2_OVF_vect)
 			}
 						
 			
-			UDP_cnt++;
-			UDP_cnt%=5;
+			VAC_cnt++;
+			VAC_cnt%=5;
 		}
 		else if(MD==PROGRAM)
 		{
@@ -426,7 +426,7 @@ ISR(TIMER2_OVF_vect)
 			}
 			else if(event_cnt==5)//
 			{	
-				UDR0 =DUMMY_BYTE;			
+				// UDR0 =DUMMY_BYTE;			
 				prepareSetDAC(0,chan);
 				setDAC();
 			}
@@ -653,7 +653,7 @@ ISR(TIMER2_OVF_vect)
 		else if(MD == PROGRAM)
 		{
 			event_cnt++;
-			if(event_cnt>8)
+			if(event_cnt>7)
 				event_cnt = 0;
 		}
 		else{
