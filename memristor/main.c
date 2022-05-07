@@ -50,6 +50,7 @@ int16_t proging_val=0;
 int16_t x16_grad;
 int16_t x16=0;
 int16_t x16_simple;
+int8_t 	x8;
 int16_t ref16=0;
 int16_t reset16=0;
 uint8_t sync=0;
@@ -267,7 +268,38 @@ ISR(TIMER2_OVF_vect)
 
 		}
 		else if(MD == MODE_SET) {
-			
+			T=6;			
+
+			if(event_cnt==0)//dT
+			{		
+				UDR0=255;
+				x16 = x8;
+				prepareSetDAC(x16,chan);
+				setDAC();				
+
+				ADCSRA |= (1 << ADSC); 
+			}
+			else if(event_cnt == 1)
+			{
+				ADCL_=ADCL;	
+				ADCH_=ADCH;
+				UDR0=ADCL_;   //2
+			}	
+			else
+			if(event_cnt==2)//ADC GET 
+			{					 
+				UDR0=ADCH_; //3
+			}	
+			else
+			if(event_cnt==3)
+			{	
+				UDR0 =DUMMY_BYTE;
+			}
+			//DACset proging val
+			else if(event_cnt==4)
+			{
+				UDR0 =DUMMY_BYTE;	
+			}
 		}
 		else if(MD==VAC)
 		{			
@@ -709,8 +741,9 @@ ISR(USART_RX_vect)
 		break;
 		
 		
-		case 2:		
-		x16_simple = UDR0;
+		case 2:	
+		x8 = UDR0;		
+		x16_simple = (uint8_t)x8;
 		x16 = x16_simple<<4;
 		break;
 		case 3:	

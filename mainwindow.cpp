@@ -679,6 +679,38 @@ void MainWindow::Serial_get()
             ptr++;
             ptr%=5;
         }
+        else if(MD==THETA)
+        {
+            switch(ptr)
+            {
+            case 0:
+                if((uint8_t)buf[i]!=255)
+                {
+                    ptr=4;
+                }
+                break;
+            case 1:
+
+                break;
+            case 2:
+
+                buf1=buf[i];
+
+                break;
+            case 3:
+                ind_c=(ind_c+1)%data_adc.size();
+
+                data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+
+                curveADC->signalDrawing(I_koef);
+                break;
+            case 4:
+                break;
+
+            }
+            ptr++;
+            ptr%=5;
+        }
         else if(MD==ONE_SHOT)
         {
             switch(ptr)
@@ -1027,7 +1059,7 @@ void MainWindow::oneSend()
         c=-V_set_slider->value();
     }
     //2
-    port.write(&c,1);
+    port.write(&c,1); // x!
 
 
     if(MD==VAC)
