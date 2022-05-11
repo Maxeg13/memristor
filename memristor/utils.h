@@ -26,7 +26,7 @@ struct Pin_t {
 	uint8_t pin;
 };
 					
-struct Pin_t SYNC_PINS[] = {	{&PORTD, PD5}, {&PORTD, PD6}, {&PORTD, PD7}, {&PORTB, PB0}, 		//pd3 for multiplexing or pd5 for 64
+struct Pin_t SYNC_PINS[] = {	{&PORTD, PD3}, {&PORTD, PD6}, {&PORTD, PD7}, {&PORTB, PB0}, 		//pd3 for multiplexing or pd5 for 64
 								{&PORTB, PB1}, {&PORTC, PC2}, {&PORTC, PC3}, {&PORTC, PC4} };
 						
 						
@@ -49,16 +49,17 @@ void gatherMult()
 	reset_pin(sep2_pin);
 	reset_pin(sep3_pin);
 	reset_pin(sep1_pin);
-	reset_pin(resister_pin);
 	
 	// 3-4
-	SET_PIN(PORTC, 1);	
+	RESET_PIN(PORTC, 1);	
 	// 2-3	
-	SET_PIN(PORTB, 2);
+	RESET_PIN(PORTB, 2);
 	// 1-2
-	SET_PIN(PORTB, 1);
+	RESET_PIN(PORTB, 1);
 	
-	set_pin(sep4_pin);
+	reset_pin(sep4_pin);
+	
+	set_pin(resister_pin);
 }
 
 void usualMult()
