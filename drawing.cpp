@@ -73,6 +73,57 @@ void myCurve::twoSignalsDrawing(float k, vector<float>& data1, vector<float>& da
     curve2->attach( d_plot); // отобразить кривую на графике
 }
 
+void myCurve::fourSignalsDrawing(float k, vector<float>& data1, vector<float>& data2,
+                                 vector<float>& data3, vector<float>& data4, vector<QwtPlotCurve*> curve2)
+{
+//    vector<float> &data;
+    // Добавить точки на ранее созданную кривую
+    {
+        QPolygonF points;
+
+        for (int i=1;i<data.size();i++)
+        {
+            points<<QPointF(i,data1[(ind_c+i+1)%data1.size()]*k);
+        }
+        setSamples( points ); // ассоциировать набор точек с кривой
+        attach( d_plot); // отобразить кривую на графике
+    }
+
+    {
+        QPolygonF points2;
+        curve2[0]->setPen(Qt::red, pen_size);
+
+        for (int i=1;i<data2.size();i++)
+        {
+            points2<<QPointF(i,data2[(ind_c+i+1)%data2.size()]*k);
+        }
+        curve2[0]->setSamples( points2 ); // ассоциировать набор точек с кривой
+        curve2[0]->attach( d_plot); // отобразить кривую на графике
+    }
+
+    {
+        QPolygonF points;
+
+        for (int i=1;i<data3.size();i++)
+        {
+            points<<QPointF(i,data3[(ind_c+i+1)%data3.size()]*k);
+        }
+        curve2[1]->setSamples( points ); // ассоциировать набор точек с кривой
+        curve2[1]->attach( d_plot); // отобразить кривую на графике
+    }
+
+    {
+        QPolygonF points;
+
+        for (int i=1;i<data4.size();i++)
+        {
+            points<<QPointF(i,data4[(ind_c+i+1)%data4.size()]*k*.9);
+        }
+        curve2[2]->setSamples( points ); // ассоциировать набор точек с кривой
+        curve2[2]->attach( d_plot); // отобразить кривую на графике
+    }
+}
+
 void myCurve::pointDrawing(float x,float y)
 {
     // Добавить точки на ранее созданную кривую

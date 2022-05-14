@@ -38,7 +38,7 @@ float V_koef=0.1;
 //11.
 float I_koef=5.7;
 using namespace std;
-QPushButton *vac_btn,*custom_btn, *prog_btn, *filler_btn, *analyze_btn,
+QPushButton *vac_btn,*theta_btn, *prog_btn, *filler_btn, *reset_btn,
 *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *shots_btn;
 
 #define CHAN_N 64
@@ -52,7 +52,8 @@ enum MODE
     SEPAR_MULT,
     ONE_SHOT,
     ANALYZE,
-    THETA
+    THETA,
+    RESET
 };
 
 MODE MD;
@@ -69,6 +70,8 @@ QCheckBox* write_check;
 QwtPlot *cur_plot, *set_plot;
 myCurve* curveADC;
 QwtPlotCurve  *curveADC2;
+QwtPlotCurve  *curveADC3;
+QwtPlotCurve  *curveADC4;
 //QwtPlot* ;
 int ind_c;
 int ind_c1;
@@ -94,6 +97,7 @@ QSlider* theta_slider;
 QSlider* VAC_min_slider;
 int VAC_min[CHAN_N];
 int VAC_max[CHAN_N];
+int theta[CHAN_N];
 QSlider* VAC_max_slider;
 //QLineEdit* chan_le;
 QComboBox* chan_cb;
@@ -113,6 +117,8 @@ QLabel *imit_label;
 vector<float> data_adc;
 vector<float> data_adc1;
 vector<float> data_adc2;
+vector<float> data_adc3;
+vector<float> data_adc4;
 QLabel* V_ref_label;
 vector<float> current;
 int current_ind;
@@ -151,7 +157,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     mapIV.erase(mapIV.begin(),mapIV.end());
     curveADC2=new QwtPlotCurve;
-
+    curveADC3=new QwtPlotCurve;
+    curveADC4=new QwtPlotCurve;
 //    file_rand_stat = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\rand_stat.txt"));
      file_rand_stat = new QFile(QString("rand_stat.txt"));
 
@@ -170,11 +177,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     rest_btn= new QPushButton("take a rest");
     prog_btn=new QPushButton("PROGRAM MODE");
-    custom_btn=new QPushButton("CUSTOM MODE");
+    theta_btn=new QPushButton("THETA MODE");
     gather_mult_btn = new QPushButton("gather mult");
     separ_mult_btn = new QPushButton("separ mult");
-    shots_btn = new QPushButton("SHOT LOOP");
-    analyze_btn = new QPushButton("ANALYZE");
+    shots_btn = new QPushButton("ONE SHOT");
+    reset_btn = new QPushButton("RESET");
     vac_btn=new QPushButton("VAC MODE");
     VAC_check=new QCheckBox("check: ");
     write_check = new QCheckBox("write on");
@@ -189,8 +196,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(gather_mult_btn,SIGNAL(pressed()),this,SLOT(gather_mult_btn_pressed()));
     connect(rest_btn,SIGNAL(pressed()),this,SLOT(rest_btn_pressed()));
     connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
-    connect(analyze_btn,SIGNAL(pressed()),this,SLOT(analyze_btn_pressed()));
-    connect(custom_btn,SIGNAL(pressed()),this,SLOT(custom_btn_pressed()));
+    connect(reset_btn,SIGNAL(pressed()),this,SLOT(reset_btn_pressed()));
+    connect(theta_btn,SIGNAL(pressed()),this,SLOT(theta_btn_pressed()));
     //    connect(vac_btn,SIGNAL(pressed()),this,SLOT(vac_btn_pressed()));
     connect(prog_btn,SIGNAL(pressed()),this,SLOT(prog_btn_pressed()));
     filler_btn=new QPushButton();
@@ -242,6 +249,8 @@ MainWindow::MainWindow(QWidget *parent)
     data_adc1.resize(bufShowSize);
     ind_c1=0;
     data_adc2.resize(bufShowSize);
+    data_adc3.resize(bufShowSize);
+    data_adc4.resize(bufShowSize);
     ind_c2=0;
     //    QImage image("C:/Users/DrPepper/Documents/memristor/Scheme.png");
     //    QMovie *movie = new QMovie("./rezero.gif");
@@ -360,7 +369,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     for (int i =0 ;i<CHAN_N; i++)
     {
-        chan_cb->addItem(QString::number(i+1),i);
+        auto itemText = QString::number(i+1)+ " / "+ QString::number((i%8+1)) + " " + (((i/8)%2==1)?QString("down"):QString("up"));
+        chan_cb->addItem(itemText,i);
     }
 
     reverse_check = new QCheckBox("");
@@ -440,12 +450,12 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(write_check, 2,0,1,2);
 
     lt->addWidget(shots_btn, 3,0,1,2);
-    lt->addWidget(analyze_btn, 3,2,1,2);
+    lt->addWidget(reset_btn, 3,2,1,2);
 
     lt->addWidget(gather_mult_btn, 4,0,1,2);
     lt->addWidget(separ_mult_btn, 4,2,1,2);
 
-    lt->addWidget(custom_btn,5,0,1,2);
+    lt->addWidget(theta_btn,5,0,1,2);
     lt->addWidget(vac_btn,5,2,1,2);
 
     lt->addWidget(prog_btn,6,0,1,2);
@@ -492,8 +502,8 @@ MainWindow::MainWindow(QWidget *parent)
     //prog_btn->set
 //    one_shot_timer.setInterval(3);
 
-    connect(&one_shot_timer, SIGNAL(timeout()),this,SLOT(shots_btn_pressed()));
-    connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+//    connect(&one_shot_timer, SIGNAL(timeout()),this,SLOT(shots_btn_pressed()));
+    connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(oneGet()));
     connect(&imit_timer,SIGNAL(timeout()),this,SLOT(setNewImg()));
 }
 
@@ -524,10 +534,10 @@ void MainWindow::COMInit()
     serial_get_timer.start();
 }
 
-void MainWindow::Serial_get()
+void MainWindow::oneGet()
 {
     static auto mySign=[](int a, bool b){if(b)return a; else return -a;};
-    static QString adch;
+    static QString adch[4];
 
     static uint8_t buf1;
     uint16_t h;
@@ -711,7 +721,7 @@ void MainWindow::Serial_get()
             ptr++;
             ptr%=5;
         }
-        else if(MD==ONE_SHOT)
+        else if((MD==ONE_SHOT)||(MD==RESET))
         {
             switch(ptr)
             {
@@ -732,29 +742,49 @@ void MainWindow::Serial_get()
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 //                curveADC->signalDrawing(I_koef);
 
-                adch=QString::number(data_adc1[ind_c]*I_koef);
+                adch[0]=QString::number(data_adc1[ind_c]*I_koef);
                 break;
             case 3:
                 buf1=(uint8_t)buf[i];
 
                 break;
             case 4:
-
-
-
                 data_adc2[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-                curveADC->twoSignalsDrawing(I_koef,data_adc1,data_adc2,curveADC2);
+                adch[1]=QString::number(data_adc2[ind_c]*I_koef);
+                break;
+            case 5:
+                buf1=(uint8_t)buf[i];
+
+                break;
+            case 6:
+                data_adc3[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
+                adch[2]=QString::number(data_adc3[ind_c]*I_koef);
+                break;
+            case 7:
+                buf1=(uint8_t)buf[i];
+
+                break;
+            case 8:
+                data_adc4[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
+                vector<QwtPlotCurve*> curves{curveADC2, curveADC3, curveADC4};
+                curveADC->fourSignalsDrawing(I_koef,data_adc1,data_adc2,
+                                             data_adc3,data_adc4,curves);
+
+                map<int, QString> mode_names{{RESET, "RESET MODE:"}, {ONE_SHOT, "SET MODE:  "}};
+                QString str = mode_names[(int)MD] + "    " + adch[0] + "    " + adch[1] + "    " + adch[2] + "    " + QString::number(data_adc4[ind_c]*I_koef);
+                qDebug()<< str<<endl;
                 if(write_check->isChecked())
                 {
-                    QTextStream outStream(file_rand_stat);
-                    outStream << adch << "    "<<QString::number(data_adc2[ind_c]*I_koef)<<endl ;
+                    QTextStream outStream(file_rand_stat);                    
+                    outStream << str<<endl;
                 }
                 break;
-
             }
             ptr++;
-            ptr%=5;
+            ptr%=(5+5);
         }
         else if(MD == ANALYZE)
         {
@@ -791,7 +821,7 @@ void MainWindow::Serial_get()
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 curveADC->signalDrawing(I_koef);
 
-                adch=QString::number(data_adc[ind_c]*I_koef);
+                adch[0]=QString::number(data_adc[ind_c]*I_koef);
 
                 QTextStream outStream(file_analyze);
                 if(write_check->isChecked())
@@ -806,17 +836,16 @@ void MainWindow::Serial_get()
     }
 }
 
-void MainWindow::custom_btn_pressed()
+void MainWindow::theta_btn_pressed()
 {
-    //    for (auto& it:data_adc)
-    //        it=0;
-    disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
-    V_set_label->setText("V set");
-    //    reset_label->setText("tau1");
-    t2_label->setText("tau2");
-    MD=CUSTOM;
+//   disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+
+    MD=THETA;
     oneSend();
-    connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+    data_adc.resize(data_adc.size(),0);
+    for (auto& it:data_adc)
+        it=0;
+    connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(oneGet()));
 }
 
 void MainWindow::prog_btn_pressed()
@@ -887,12 +916,15 @@ void MainWindow::shots_btn_pressed()
     ptr=0;
     MD = ONE_SHOT;
     oneSend();
+
+    char buf[10];
+    port.read(buf,buf_N);
 }
 
-void MainWindow::analyze_btn_pressed()
+void MainWindow::reset_btn_pressed()
 {
-    MD = ANALYZE;
-    file_analyze -> open(QIODevice::WriteOnly);
+    ptr=0;
+    MD = RESET;
     oneSend();
 }
 
@@ -911,10 +943,10 @@ void MainWindow::write_check_state_changed(int x)
 
 void MainWindow::chanPressed()
 {
-    rest_btn_pressed();
+    MD = THETA;
     QThread::msleep(100);
 
-
+    theta[chan]=theta_slider->value();
     reversed[chan]=reverse_check->isChecked();
     VAC_min[chan]=VAC_min_slider->value();
     VAC_max[chan]=VAC_max_slider->value();
@@ -922,6 +954,7 @@ void MainWindow::chanPressed()
     chan = chan_cb->currentIndex();
     qDebug()<<chan;
 
+    theta_slider->setValue(theta[chan]);
     VAC_min_slider->setValue((VAC_min[chan]));
     //    VAC_max_le->setText(QString::number(VAC_max[chan]));
     VAC_max_slider->setValue((VAC_max[chan]));
@@ -944,7 +977,7 @@ void MainWindow::vac_btn_pressed()
     set_plot->setAxisAutoScale(QwtPlot::xTop,1);
     set_plot->setAxisAutoScale(QwtPlot::yLeft,1);
     set_plot->setAxisAutoScale(QwtPlot::yRight,1);
-    disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+    disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(oneGet()));
     //    reset_label->setText("tau1");
     t2_label->setText("tau2");
     for(auto& it:current)
@@ -959,7 +992,7 @@ void MainWindow::vac_btn_pressed()
     MD=VAC;
 
     V_set_label->setText("V set");
-    connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
+    connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(oneGet()));
 
 
     oneSend();
@@ -1050,13 +1083,13 @@ void MainWindow::oneSend()
                 c=VAC_min_slider->value();
             else
                 c=VAC_max_slider->value();
-    else if(MD==CUSTOM)
-        c=V_set_slider->value();
-    else if(MD==PROGRAM)
-        c=V_set_slider->value();
-    else if((MD == ANALYZE) || (MD == ONE_SHOT))
+    else if((MD == ANALYZE) || (MD == ONE_SHOT) ||
+            (MD==PROGRAM) || (MD==CUSTOM) || (MD==RESET))
     {
-        c=-V_set_slider->value();
+        c=V_set_slider->value();
+    } else if(MD == THETA) {
+        c= theta_slider->value();
+        qDebug()<<theta_slider->value();
     }
     //2
     port.write(&c,1); // x!

@@ -32,6 +32,9 @@ public:
     void pointDrawing(float , float);
     void set_Drawing(vector<float> &x, vector<float> &y, int i1=-1, int i2=-1);
 
+    void fourSignalsDrawing(float k, vector<float>& data1, vector<float>& data2,
+                                     vector<float>& data3, vector<float>& data4, vector<QwtPlotCurve*>);
+
 };
 
 
