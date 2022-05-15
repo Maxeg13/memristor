@@ -175,12 +175,12 @@ MainWindow::MainWindow(QWidget *parent)
     //    vv[3]=3;
     //    qDebug()<<vv.size();
 
-    rest_btn= new QPushButton("take a rest");
+    rest_btn= new QPushButton("set zero voltage");
     prog_btn=new QPushButton("PROGRAM MODE");
     theta_btn=new QPushButton("THETA MODE");
     gather_mult_btn = new QPushButton("gather mult");
     separ_mult_btn = new QPushButton("separ mult");
-    shots_btn = new QPushButton("ONE SHOT");
+    shots_btn = new QPushButton("COMMON SET");
     reset_btn = new QPushButton("RESET");
     vac_btn=new QPushButton("VAC MODE");
     VAC_check=new QCheckBox("check: ");
@@ -420,7 +420,7 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(V_pl_max_slider, 6,5);
 
     lt->addWidget(theta_label,7,4);
-    lt->addWidget(theta_slider,7,5);
+    lt->addWidget(theta_slider,7,5,1,3);
 
 
 
@@ -922,7 +922,7 @@ void MainWindow::shots_btn_pressed()
 }
 
 void MainWindow::reset_btn_pressed()
-{
+{   
     ptr=0;
     MD = RESET;
     oneSend();

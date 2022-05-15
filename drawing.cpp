@@ -91,7 +91,7 @@ void myCurve::fourSignalsDrawing(float k, vector<float>& data1, vector<float>& d
 
     {
         QPolygonF points2;
-        curve2[0]->setPen(Qt::red, pen_size);
+        curve2[0]->setPen(Qt::blue, pen_size);
 
         for (int i=1;i<data2.size();i++)
         {
@@ -103,6 +103,7 @@ void myCurve::fourSignalsDrawing(float k, vector<float>& data1, vector<float>& d
 
     {
         QPolygonF points;
+        curve2[1]->setPen(Qt::green, pen_size);
 
         for (int i=1;i<data3.size();i++)
         {
@@ -113,7 +114,8 @@ void myCurve::fourSignalsDrawing(float k, vector<float>& data1, vector<float>& d
     }
 
     {
-        QPolygonF points;
+        QPolygonF points;        
+        curve2[2]->setPen(Qt::cyan, pen_size);
 
         for (int i=1;i<data4.size();i++)
         {
