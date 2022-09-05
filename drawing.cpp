@@ -79,7 +79,7 @@ void myCurve::fourSignalsDrawing(float k, vector<float>& data1, vector<float>& d
 //    vector<float> &data;
     // Добавить точки на ранее созданную кривую
     {
-        QPolygonF points;
+        QPolygonF points;        
 
         for (int i=1;i<data.size();i++)
         {
@@ -115,7 +115,7 @@ void myCurve::fourSignalsDrawing(float k, vector<float>& data1, vector<float>& d
 
     {
         QPolygonF points;        
-        curve2[2]->setPen(Qt::cyan, pen_size);
+        curve2[2]->setPen(Qt::red, pen_size);
 
         for (int i=1;i<data4.size();i++)
         {

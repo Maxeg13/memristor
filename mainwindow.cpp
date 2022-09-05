@@ -57,7 +57,7 @@ enum MODE
 };
 
 MODE MD;
-
+bool abstractIs;
 map<int,int> mapIV;
 int reversed[CHAN_N];
 int adc_shift=120;
@@ -91,6 +91,7 @@ QLineEdit* t2_le;
 QLineEdit* dT_le;
 QLineEdit* T_le;
 QLabel* VAC_min_label;
+QLabel* infoLabel;
 QLabel* VAC_max_label;
 QSlider* targ_slider;
 QSlider* theta_slider;
@@ -99,9 +100,9 @@ int VAC_min[CHAN_N];
 int VAC_max[CHAN_N];
 int theta[CHAN_N];
 QSlider* VAC_max_slider;
-//QLineEdit* chan_le;
 QComboBox* chan_cb;
 QCheckBox* reverse_check;
+QCheckBox* abstract_check;
 QLabel* reset_label;
 QLabel* t2_label;
 
@@ -129,7 +130,6 @@ char buf[buf_N];
 QTimer serial_get_timer;
 QTimer imit_timer;
 QTimer one_shot_timer;
-//int ;
 QString qstr;
 QSerialPort port;
 int serial_inited;
@@ -179,7 +179,7 @@ MainWindow::MainWindow(QWidget *parent)
     prog_btn=new QPushButton("PROGRAM MODE");
     theta_btn=new QPushButton("THETA MODE");
     gather_mult_btn = new QPushButton("gather mult");
-    separ_mult_btn = new QPushButton("separ mult");
+    separ_mult_btn = new QPushButton("usual mult");
     shots_btn = new QPushButton("COMMON SET");
     reset_btn = new QPushButton("RESET");
     vac_btn=new QPushButton("VAC MODE");
@@ -305,6 +305,8 @@ MainWindow::MainWindow(QWidget *parent)
     VAC_max_label=new QLabel("VAC+");
     VAC_max_label->setMaximumWidth(labels_width);
 
+    infoLabel = new QLabel("channels order: black, blue, green, red");
+
     QLabel* chan_label = new QLabel("cnannel ind");
     chan_label->setMaximumWidth(labels_width);
 
@@ -374,6 +376,7 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     reverse_check = new QCheckBox("");
+    abstract_check = new QCheckBox("abstract units");
 
     //    serial_le->setMaximumWidth(200);
     //    //    V1_le->setMaximumWidth(200);
@@ -448,6 +451,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     //-----------------------------
     lt->addWidget(write_check, 2,0,1,2);
+    lt->addWidget(infoLabel, 2, 2);
 
     lt->addWidget(shots_btn, 3,0,1,2);
     lt->addWidget(reset_btn, 3,2,1,2);
@@ -462,6 +466,7 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(rest_btn,6,2,1,2);
 
     lt->addWidget(rest_btn,6,2,1,2);
+    lt->addWidget(abstract_check, 7,0,1,2);
 
     //    lt->addWidget(filler_btn,9,1,1,2);
     //    lt->addWidget(filler_btn1,7,2);
@@ -483,6 +488,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     //    connect()
     connect(chan_cb,SIGNAL(currentIndexChanged(int)),this,SLOT(chanPressed()));
+    connect(abstract_check,SIGNAL(stateChanged(int)),this,SLOT(abstractChecked()));
     connect(reverse_check,SIGNAL(stateChanged(int)),this,SLOT(oneSend()));
     connect(VAC_check,SIGNAL(stateChanged(int)),this,SLOT(VAC_check_changed()));
     //    connect(V_reset_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
@@ -1051,6 +1057,11 @@ void MainWindow::setNewImg()
     imit_label->setPixmap(QPixmap::fromImage(image));
     //    qDebug()<<"hey";
     cnt++; if(cnt>260)cnt=1;
+}
+
+void MainWindow::abstractChecked() {
+    abstractIs = abstract_check->isChecked();
+    qDebug()<<abstractIs;
 }
 
 void MainWindow::oneSend()
