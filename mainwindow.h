@@ -11,14 +11,14 @@ public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-
-
+    void parseJson();
 
 public slots:
 //    void restSend(int chan_);
     void keyReleaseEvent(QKeyEvent *event);
 private slots:
-    void abstractChecked();
+    void jsonSend();
+    void parseInputJson();
     void setNewImg();
     void chanPressed();
     void VAC_check_changed();

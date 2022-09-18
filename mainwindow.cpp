@@ -1,6 +1,7 @@
 //v1 , v2 are positive for VAC_mode (convert to -v1 and v2)
 //20 us to 3.5 ms , 1V to 5V
 
+// short circuit  commented out
 
 //1         9
 //17        25
@@ -38,14 +39,17 @@ float V_koef=0.1;
 //11.
 float I_koef=5.7;
 using namespace std;
-QPushButton *vac_btn,*theta_btn, *prog_btn, *filler_btn, *reset_btn,
+QPushButton *vac_btn,  *prog_btn, *filler_btn, *reset_btn,
 *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *shots_btn;
+QPushButton* parse_input_btn;
+QPushButton *theta_btn;
+//QPushButton *measure_btn;
 
 #define CHAN_N 64
 
 enum MODE
 {
-    CUSTOM,
+    MEASURE,
     VAC,
     PROGRAM,
     GATHER_MULT,
@@ -53,10 +57,14 @@ enum MODE
     ONE_SHOT,
     ANALYZE,
     THETA,
-    RESET
+    RESET,
+    JSON_INPUTS
 };
 
 MODE MD;
+int json_chan;
+vector<int> chans_to_meas;
+map<int, int> json_vs;
 bool abstractIs;
 map<int,int> mapIV;
 int reversed[CHAN_N];
@@ -94,7 +102,7 @@ QLabel* VAC_min_label;
 QLabel* infoLabel;
 QLabel* VAC_max_label;
 QSlider* targ_slider;
-QSlider* theta_slider;
+QSlider* theta_v_slider;
 QSlider* VAC_min_slider;
 int VAC_min[CHAN_N];
 int VAC_max[CHAN_N];
@@ -127,6 +135,7 @@ vector<float> voltage;
 int voltage_ind;
 const int buf_N=30;
 char buf[buf_N];
+QTimer json_input_send_timer;
 QTimer serial_get_timer;
 QTimer imit_timer;
 QTimer one_shot_timer;
@@ -185,11 +194,13 @@ MainWindow::MainWindow(QWidget *parent)
     vac_btn=new QPushButton("VAC MODE");
     VAC_check=new QCheckBox("check: ");
     write_check = new QCheckBox("write on");
+    parse_input_btn = new QPushButton("set json input");
 
     //////
     /// brief connect
     ///
 
+    connect(parse_input_btn, SIGNAL(pressed()),this,SLOT(parseInputJson()));
     connect(write_check, SIGNAL(stateChanged(int)), this, SLOT(write_check_state_changed(int)));
     connect(shots_btn,SIGNAL(pressed()),this,SLOT(shots_btn_pressed()));
     connect(separ_mult_btn,SIGNAL(pressed()),this,SLOT(separ_mult_btn_pressed()));
@@ -337,10 +348,10 @@ MainWindow::MainWindow(QWidget *parent)
     V_ref_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_max_slider=new QSlider(Qt::Orientation::Horizontal);
     VAC_min_slider=new QSlider(Qt::Orientation::Horizontal);
-    theta_slider=new QSlider(Qt::Orientation::Horizontal);
+    theta_v_slider=new QSlider(Qt::Orientation::Horizontal);
     vector<QSlider*> sliders={V_reset_slider, VAC_mini_slider, V_pl_max_slider,
                               targ_slider, V_set_slider, VAC_min_slider, VAC_max_slider,
-                              V_ref_slider, theta_slider};
+                              V_ref_slider, theta_v_slider};
     for(auto& a:sliders)
     {
         a->setTickInterval(2);
@@ -354,7 +365,7 @@ MainWindow::MainWindow(QWidget *parent)
     V_set_slider->setValue(20);
     targ_slider->setRange(0,60);
     VAC_mini_slider->setRange(0,30);
-    theta_slider->setRange(-126, 126);
+    theta_v_slider->setRange(-126, 126);
 
 
     serial_le=new QLineEdit("COM3");
@@ -376,7 +387,7 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     reverse_check = new QCheckBox("");
-    abstract_check = new QCheckBox("abstract units");
+
 
     //    serial_le->setMaximumWidth(200);
     //    //    V1_le->setMaximumWidth(200);
@@ -423,7 +434,7 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(V_pl_max_slider, 6,5);
 
     lt->addWidget(theta_label,7,4);
-    lt->addWidget(theta_slider,7,5,1,3);
+    lt->addWidget(theta_v_slider,7,5,1,3);
 
 
 
@@ -466,7 +477,7 @@ MainWindow::MainWindow(QWidget *parent)
     lt->addWidget(rest_btn,6,2,1,2);
 
     lt->addWidget(rest_btn,6,2,1,2);
-    lt->addWidget(abstract_check, 7,0,1,2);
+    lt->addWidget(parse_input_btn, 7,0,1,2);
 
     //    lt->addWidget(filler_btn,9,1,1,2);
     //    lt->addWidget(filler_btn1,7,2);
@@ -485,10 +496,7 @@ MainWindow::MainWindow(QWidget *parent)
     central->setLayout(lt);
     setCentralWidget(central);
 
-
-    //    connect()
     connect(chan_cb,SIGNAL(currentIndexChanged(int)),this,SLOT(chanPressed()));
-    connect(abstract_check,SIGNAL(stateChanged(int)),this,SLOT(abstractChecked()));
     connect(reverse_check,SIGNAL(stateChanged(int)),this,SLOT(oneSend()));
     connect(VAC_check,SIGNAL(stateChanged(int)),this,SLOT(VAC_check_changed()));
     //    connect(V_reset_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
@@ -497,7 +505,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(T_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(VAC_mini_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     connect(targ_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
-    connect(theta_slider, SIGNAL(sliderReleased()),this,SLOT(oneSend()));
+    connect(theta_v_slider, SIGNAL(sliderReleased()),this,SLOT(oneSend()));
 
 
     serial_get_timer.setInterval(5);
@@ -532,7 +540,7 @@ void MainWindow::COMInit()
 
     }
 
-    MD=CUSTOM;
+    MD=MEASURE;
     oneSend();
 
     serial_le->setDisabled(true);
@@ -552,7 +560,7 @@ void MainWindow::oneGet()
     for(int i=0;i<N;i++)
     {
         //        qDebug()<<(uint8_t)buf[i];
-        if((MD==CUSTOM))
+        if((MD==MEASURE))
         {
             switch(ptr)
             {
@@ -560,10 +568,10 @@ void MainWindow::oneGet()
                 if((uint8_t)buf[i]!=255)
                     ptr=4;
                 break;
-            case 1:
+            case 3:
                 buf1=buf[i];
                 break;
-            case 2:
+            case 4:
 
                 ind_c=(ind_c+1)%data_adc.size();
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
@@ -695,7 +703,7 @@ void MainWindow::oneGet()
             ptr++;
             ptr%=5;
         }
-        else if(MD==THETA)
+        else if((MD==THETA)||(MD==JSON_INPUTS))
         {
             switch(ptr)
             {
@@ -866,7 +874,7 @@ void MainWindow::prog_btn_pressed()
 }
 void MainWindow::rest_btn_pressed()
 {
-    MD=CUSTOM;
+    MD=MEASURE;
 
     char c;
     c=255;
@@ -952,7 +960,7 @@ void MainWindow::chanPressed()
     MD = THETA;
     QThread::msleep(100);
 
-    theta[chan]=theta_slider->value();
+    theta[chan]=theta_v_slider->value();
     reversed[chan]=reverse_check->isChecked();
     VAC_min[chan]=VAC_min_slider->value();
     VAC_max[chan]=VAC_max_slider->value();
@@ -960,7 +968,7 @@ void MainWindow::chanPressed()
     chan = chan_cb->currentIndex();
     qDebug()<<chan;
 
-    theta_slider->setValue(theta[chan]);
+    theta_v_slider->setValue(theta[chan]);
     VAC_min_slider->setValue((VAC_min[chan]));
     //    VAC_max_le->setText(QString::number(VAC_max[chan]));
     VAC_max_slider->setValue((VAC_max[chan]));
@@ -1028,12 +1036,12 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 
     case Qt::Key_W:
 
-        WriteFile("ShortCircuit");
+//        WriteFile("ShortCircuit");
 
         break;
 
     case Qt::Key_R:
-        ReadFile("ShortCircuit",mapIV);
+//        ReadFile("ShortCircuit",mapIV);
         break;
 
 
@@ -1059,9 +1067,58 @@ void MainWindow::setNewImg()
     cnt++; if(cnt>260)cnt=1;
 }
 
-void MainWindow::abstractChecked() {
-    abstractIs = abstract_check->isChecked();
-    qDebug()<<abstractIs;
+void MainWindow::jsonSend() {
+    MD = JSON_INPUTS;
+    oneSend();
+    qDebug() << "MD is: " << static_cast<int>(MD);
+    if(json_vs.empty()) {
+        disconnect(&json_input_send_timer, SIGNAL(timeout()),this,SLOT(jsonSend()));
+    }
+}
+
+#include <QJsonObject>
+void MainWindow::parseJson() {
+    qDebug() << "parseJson";
+
+    QFile inFile("input_vector.json");
+    inFile.open(QIODevice::ReadOnly|QIODevice::Text);
+    QByteArray data = inFile.readAll();
+    qDebug() << "data size of input file: " << data.size();
+    inFile.close();
+
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    if (doc.isNull()) {
+        qDebug() << "Parse failed";
+        return;
+    }
+
+    qDebug() << doc;
+    QJsonObject sett2 = doc.object();
+
+    double x_koeff = sett2.value("x_koeff").toDouble();
+    qDebug() << x_koeff;
+
+    json_vs.clear();
+    QJsonValue value = sett2.value(QString("inputs"));
+    for(const auto& el: value.toArray()) {
+        int chan = el.toArray()[0].toInt();
+        json_vs[chan] = el.toArray()[1].toDouble() * x_koeff;
+    }
+
+    chans_to_meas.clear();
+    value = sett2.value(QString("channels to measure"));
+    for(const auto& el: value.toArray()) {
+        chans_to_meas.push_back(el.toInt());
+    }
+    qDebug()<<"chans to measure, number: "<<chans_to_meas.size();
+}
+
+void MainWindow::parseInputJson() {
+    parseJson();
+
+    json_input_send_timer.setInterval(40);
+    connect(&json_input_send_timer, SIGNAL(timeout()),this,SLOT(jsonSend()));
+    json_input_send_timer.start();
 }
 
 void MainWindow::oneSend()
@@ -1076,13 +1133,18 @@ void MainWindow::oneSend()
     reset_label->setText("V reset: "+QString().setNum(V_koef*V_reset_slider->value(), 'g',2));
     V_ref_label->setText("Ref: "+QString().setNum(V_koef*V_ref_slider->value(), 'g',2));
     VAC_check->setText("check: "+QString().setNum(V_koef*VAC_mini_slider->value(), 'g',2));
-    theta_label->setText("theta: "+QString().setNum(V_koef*theta_slider->value(), 'g',2));
+
+    theta_label->setText("theta_v: " + QString().setNum(V_koef*theta_v_slider->value(), 'g',2));
 
     c=255;
     port.write(&c,1);
-    //    case 0:
 
-    c=MD;
+
+    if(MD==JSON_INPUTS) {
+        c=THETA;
+    } else {
+        c = MD;
+    }
     port.write(&c,1);//1
 
 
@@ -1095,12 +1157,17 @@ void MainWindow::oneSend()
             else
                 c=VAC_max_slider->value();
     else if((MD == ANALYZE) || (MD == ONE_SHOT) ||
-            (MD==PROGRAM) || (MD==CUSTOM) || (MD==RESET))
+            (MD==PROGRAM) || (MD==MEASURE) || (MD==RESET))
     {
         c=V_set_slider->value();
     } else if(MD == THETA) {
-        c= theta_slider->value();
-        qDebug()<<theta_slider->value();
+        c= theta_v_slider->value();
+        qDebug()<<theta_v_slider->value();
+    } else if(MD == JSON_INPUTS) {
+        json_chan = json_vs.begin()->first;
+        c = json_vs.begin()->second;
+        json_vs.erase(json_vs.begin());
+        qDebug()<<"json channel:"<< json_chan << ", json input: "<<(int)c * V_koef <<" V";
     }
     //2
     port.write(&c,1); // x!
@@ -1137,14 +1204,17 @@ void MainWindow::oneSend()
     c=T_le->text().toInt();
     port.write(&c,1);//7
 
-    c=chan;
+    if(MD==JSON_INPUTS){
+        c=json_chan;
+    } else {
+        c=chan;
+    }
+
     port.write(&c,1);//8
 
     c=reverse_check->isChecked();
     reversed[chan]=reverse_check->isChecked();
     port.write(&c,1);//9
-
-
 }
 
 

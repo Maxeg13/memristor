@@ -1,0 +1,8 @@
+memristor/main.elf
+memristor/main.hex
+memristor/main.lss
+memristor/main.lst
+memristor/main.map
+memristor/main.o
+memristor/main.sym
+memristor/utils.h

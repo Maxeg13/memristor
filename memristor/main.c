@@ -15,7 +15,7 @@
 // режимы
 typedef enum
 {
-	CUSTOM,
+	MEASURE,
 	VAC,
 	PROGRAM,
 	GATHER_MULT,
@@ -34,10 +34,10 @@ typedef enum
 	CHAN_4
 } CHAN_I;
 
-//CUSTOM - ручной режим 
+//MEASURE - ручной режим 
 //VAC - режим вольт-амперной характеристики
 //PROGRAM - режим программирования проводимости мемристора
-MODE MD=CUSTOM;//CUSTOM - режим по умолчанию
+MODE MD=MEASURE;//MEASURE - режим по умолчанию
 
 
 
@@ -66,13 +66,14 @@ uint8_t STAT_V_step=0;
 uint8_t ptr=0, VAC_cnt;// WHAAAAT???
 uint8_t PROGRAM_done=0;
 uint8_t chan=0;
+uint8_t received=0;
 char c;
 uint16_t _adc;
 uint16_t an_cnt=0, an_cnt_fast=0;
 uint8_t reverted[CHAN_N]={0,0,0,0,0,0,0,0, 
 						0,0,0,0,0,0,0,0,
 						0};
-int ctr;
+int _ctr; // lives in main, never touch
 
 int event_cnt;
 int time_step=6;//3
@@ -218,52 +219,45 @@ void main(void)
 //данный участок кода повторяется при переполнении TIMER2
 ISR(TIMER2_OVF_vect)
 {
-	if(ctr>time_step)
+	if(_ctr>time_step)
 	{
-		if(MD==CUSTOM)
+		if(MD==MEASURE)
 		{
 
 			if(event_cnt==0)
 			{
 			UDR0=255;
-			prepareSetDAC(0,chan);
-			//prepareSetDAC(x16,2);
-			setDAC();
+			//prepareSetDAC(0,chan);
+				if(received) {
+					received = 0;
+					prepareSetDAC(x16,chan);
+					setDAC();
+				}
 			}
-			else if(event_cnt==(1))
+			else if(event_cnt==1)
+			{
+			ADCSRA |= (1 << ADSC); 
+			UDR0=DUMMY_BYTE;
+			}
+			else if(event_cnt==2)
+			{	
+			UDR0=DUMMY_BYTE;
+		
+			}
+			else if(event_cnt==3)
+			{
+				
+			}
+			else if(event_cnt==4)
 			{	
 			ADCL_=ADCL;
 			ADCH_=ADCH;
 			UDR0=ADCL_;			
 			}			
-			else if(event_cnt==(2))
+			else if(event_cnt==5)
 			{	
 			UDR0=ADCH_;				
-			}
-			else if(event_cnt==t1)
-			{
-				
-			//prepareSetDAC(0,chan);
-			//setDAC();
-			}
-			else if(event_cnt==dT)
-			{		
-			//prepareSetDAC(0,chan);
-			//setDAC();
-		
-			}
-			else if(event_cnt==(dT+1))
-				ADCSRA |= (1 << ADSC); 
-
-			else if(event_cnt==dTt2)
-			{
-			if ( ( UCSR0A & (1<<UDRE0)) )			
-				UDR0=_adc;			
-			//prepareSetDAC(0,chan);
-			//prepareSetDAC(0,2);
-			//setDAC();
-
-			}		
+			}	
 
 		}
 		else if(MD == MODE_SET) {
@@ -274,8 +268,11 @@ ISR(TIMER2_OVF_vect)
 				UDR0=255;
 				x16 = x8;
 				x16 = x16<<4;
-				prepareSetDAC(x16,chan);
-				setDAC();				
+				if(received) {
+					received = 0;
+					prepareSetDAC(x16,chan);
+					setDAC();
+				}
 
 				ADCSRA |= (1 << ADSC); 
 			}
@@ -691,7 +688,7 @@ ISR(TIMER2_OVF_vect)
 		}
 		
 		
-		ctr=0;
+		_ctr=0; 
 		
 		
 		if(MD == ONE_SHOT)
@@ -714,7 +711,7 @@ ISR(TIMER2_OVF_vect)
 				event_cnt=0;
 		}
 	}
-	ctr++;
+	_ctr++;
 }
 
 //прием команд от компьютера по UART в зависимости от режима
@@ -810,7 +807,8 @@ ISR(USART_RX_vect)
 			//	set_reverser(chan, reverted[chan]);
 			//else 
 			//	set_reverser(chan, 0);
-		
+			
+			received = 1;
 		break;
 	}
 	

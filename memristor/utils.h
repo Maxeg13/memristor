@@ -26,7 +26,7 @@ struct Pin_t {
 	uint8_t pin;
 };
 					
-struct Pin_t SYNC_PINS[] = {	{&PORTD, PD3}, {&PORTD, PD6}, {&PORTD, PD7}, {&PORTB, PB0}, 		//pd3 for multiplexing or pd5 for 64
+struct Pin_t SYNC_PINS[] = {	{&PORTD, PD5}, {&PORTD, PD6}, {&PORTD, PD7}, {&PORTB, PB0}, 		//pd3 for multiplexing or pd5 for 64
 								{&PORTB, PB1}, {&PORTC, PC2}, {&PORTC, PC3}, {&PORTC, PC4} };
 						
 						
