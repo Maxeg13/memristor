@@ -438,7 +438,7 @@ ISR(TIMER2_OVF_vect)
 				// UDR0 =DUMMY_BYTE;			
 				prepareSetDAC(0,chan);
 				setDAC();
-				mode_active = 0;
+				
 			}
 		}
 		else if(MD == RESET) {
@@ -671,29 +671,21 @@ ISR(TIMER2_OVF_vect)
 		}
 		
 		
-		_ctr=0; 
-		if(mode_active) event_cnt++;
+		_ctr=0;  // mandatory
+		if(MD != PROGRAM)
+			if(mode_active) event_cnt++; // mandatory
+		else 
+			if(!PROGRAM_done) {
+				event_cnt++; 
+				if(event_cnt > 7) 
+					event_cnt = 0;
+			} else {
+				event_cnt++; 
+				if(event_cnt > 7 ) 
+					event_cnt = 8;
+			}		
 		
-		
-//		if(MD == ONE_SHOT)
-//		{
-//			if(event_cnt<17)
-//				event_cnt++;
-//		}
-//		else if(MD == RESET) {
-//			 if(event_cnt<17)
-//				 event_cnt++;
-//		}		
-//		else if(MD == PROGRAM) {
-//			event_cnt++;
-//			if(event_cnt>7)
-//				event_cnt = 0;
-//		}
-//		else{
-//			event_cnt++;
-//			if(event_cnt>T)
-//				event_cnt=0;
-//		}
+
 	}
 	_ctr++;
 }

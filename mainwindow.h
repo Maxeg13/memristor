@@ -12,14 +12,17 @@ public:
     ~MainWindow();
 
     void parseJson();
+    void mandatoryPrep();
 
 public slots:
 //    void restSend(int chan_);
     void keyReleaseEvent(QKeyEvent *event);
 private slots:
+    void json_program_timeout();
+    void json_measure_timeout();
     void vac_send_timeout();
-    void jsonSend();
-    void parseInputJson();
+    void jsonInputs();
+    void setInputJson();
     void setNewImg();
     void chanPressed();
     void VAC_check_changed();

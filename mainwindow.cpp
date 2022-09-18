@@ -1,7 +1,7 @@
 //v1 , v2 are positive for VAC_mode (convert to -v1 and v2)
 //20 us to 3.5 ms , 1V to 5V
 
-// short circuit  commented out
+// shortcircuit  commented out
 
 //1         9
 //17        25
@@ -49,7 +49,7 @@ QPushButton *theta_btn;
 
 enum MODE
 {
-    MEASURE,
+    CUSTOM,
     VAC,
     PROGRAM,
     GATHER_MULT,
@@ -58,13 +58,18 @@ enum MODE
     ANALYZE,
     THETA,
     RESET,
-    JSON_INPUTS
+    JSON_INPUTS,
+    JSON_MEASURE,
+    JSON_MEASURE_CLOSE,
+    JSON_PROGRAM
 };
 
 MODE MD;
 int json_chan;
+int json_targ;
 vector<int> chans_to_meas;
 map<int, int> json_vs;
+map<int, int> json_ws;
 bool abstractIs;
 map<int,int> mapIV;
 int reversed[CHAN_N];
@@ -121,7 +126,7 @@ float V1;
 float mvs[]={296, 480, 1020, 1960, 3000};
 float grid[]={10, 20 ,80, 100, 163};
 
-uint8_t ptr=0;
+uint8_t receive_ptr=0;
 QLabel *imit_label;
 vector<float> data_adc;
 vector<float> data_adc1;
@@ -135,6 +140,9 @@ vector<float> voltage;
 int voltage_ind;
 const int buf_N=30;
 char buf[buf_N];
+
+QTimer json_program_timer;
+QTimer measure_timer;
 QTimer json_input_send_timer;
 QTimer VAC_send_timer;
 QTimer serial_get_timer;
@@ -185,6 +193,12 @@ MainWindow::MainWindow(QWidget *parent)
     //    vv[3]=3;
     //    qDebug()<<vv.size();
 
+    json_program_timer.setInterval(40);
+    json_input_send_timer.setInterval(40);
+    measure_timer.setInterval(40);
+    connect(&json_program_timer, SIGNAL(timeout()), this, SLOT(json_program_timeout()));
+    connect(&json_input_send_timer, SIGNAL(timeout()),this,SLOT(jsonInputs()));
+    connect(&measure_timer, SIGNAL(timeout()), this, SLOT(json_measure_timeout()));
     connect(&VAC_send_timer, SIGNAL(timeout()), this, SLOT(vac_send_timeout()));
 
     // buttons
@@ -205,7 +219,7 @@ MainWindow::MainWindow(QWidget *parent)
     /// brief connect
     ///
 
-    connect(parse_input_btn, SIGNAL(pressed()),this,SLOT(parseInputJson()));
+    connect(parse_input_btn, SIGNAL(pressed()),this,SLOT(setInputJson()));
     connect(write_check, SIGNAL(stateChanged(int)), this, SLOT(write_check_state_changed(int)));
     connect(shots_btn,SIGNAL(pressed()),this,SLOT(shots_btn_pressed()));
     connect(separ_mult_btn,SIGNAL(pressed()),this,SLOT(separ_mult_btn_pressed()));
@@ -512,9 +526,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(targ_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     connect(theta_v_slider, SIGNAL(sliderReleased()),this,SLOT(oneSend()));
 
-
     serial_get_timer.setInterval(5);
-    VAC_send_timer.setInterval(20);
+    VAC_send_timer.setInterval(18);
 
     imit_timer.setInterval(300);
     if(imitation_on)
@@ -546,7 +559,7 @@ void MainWindow::COMInit()
 
     }
 
-    MD=MEASURE;
+    MD=CUSTOM;
     oneSend();
 
     serial_le->setDisabled(true);
@@ -561,18 +574,20 @@ void MainWindow::oneGet()
 
     static uint8_t buf1;
     uint16_t h;
+    int16_t hi;
     int a,b;
     int N=port.read(buf,buf_N);
+
     for(int i=0;i<N;i++)
     {
         //        qDebug()<<(uint8_t)buf[i];
-        if((MD==MEASURE))
+        if((MD==CUSTOM))
         {
-            switch(ptr)
+            switch(receive_ptr)
             {
             case 0:
                 if((uint8_t)buf[i]!=255)
-                    ptr=4;
+                    receive_ptr=4;
                 break;
             case 3:
                 buf1=buf[i];
@@ -586,9 +601,30 @@ void MainWindow::oneGet()
                 break;
             }
 
-            ptr++;
-            ptr%=5;
+            receive_ptr++;
+            receive_ptr%=5;
 
+        }else if((MD==JSON_MEASURE_CLOSE)) {  // cheat indeed
+            switch(receive_ptr)
+            {
+            case 0:
+                if((uint8_t)buf[i]!=255)
+                    receive_ptr=4;
+                break;
+            case 3:
+                buf1=buf[i];
+                break;
+            case 4:
+
+                ind_c=(ind_c+1)%data_adc.size();
+                hi = 512-(((((uint8_t)buf[i]<<8))|buf1  ));
+
+                qDebug()<<"channel: "<<json_chan<<", w: " << hi;
+                break;
+            }
+
+            receive_ptr++;
+            receive_ptr%=5;
         }
         else if(MD==VAC)//VAC
         {
@@ -597,12 +633,12 @@ void MainWindow::oneGet()
             //            set_plot->setAxisAutoScale(2);
             //            set_plot->setAxisAutoScale(1);
             //            set_plot->setAxisAutoScale()
-            switch(ptr)
+            switch(receive_ptr)
             {
             case 0:
                 if((uint8_t)buf[i]!=255)
                 {
-                    ptr=4;
+                    receive_ptr=4;
                 }
                 //                qDebug()<<"\nc:";
                 break;
@@ -660,20 +696,20 @@ void MainWindow::oneGet()
                 break;
 
             }
-            ptr++;
-            ptr%=5;
+            receive_ptr++;
+            receive_ptr%=5;
 
 
         }
-        else if(MD==PROGRAM)
+        else if((MD==PROGRAM)||(MD==JSON_PROGRAM))
         {
             static uint8_t  _PROGRAM_done=0;
-            switch(ptr)
+            switch(receive_ptr)
             {
             case 0:
                 if((uint8_t)buf[i]!=255)
                 {
-                    ptr=4;
+                    receive_ptr=4;
                 }
                 break;
             case 1:
@@ -706,17 +742,17 @@ void MainWindow::oneGet()
                 break;
 
             }
-            ptr++;
-            ptr%=5;
+            receive_ptr++;
+            receive_ptr%=5;
         }
         else if((MD==THETA)||(MD==JSON_INPUTS))
         {
-            switch(ptr)
+            switch(receive_ptr)
             {
             case 0:
                 if((uint8_t)buf[i]!=255)
                 {
-                    ptr=4;
+                    receive_ptr=4;
                 }
                 break;
             case 1:
@@ -738,17 +774,17 @@ void MainWindow::oneGet()
                 break;
 
             }
-            ptr++;
-            ptr%=5;
+            receive_ptr++;
+            receive_ptr%=5;
         }
         else if((MD==ONE_SHOT)||(MD==RESET))
         {
-            switch(ptr)
+            switch(receive_ptr)
             {
             case 0:
                 if((uint8_t)buf[i]!=255)
                 {
-                    ptr=4;                    
+                    receive_ptr=4;
                 }
                 break;
             case 1:
@@ -803,18 +839,18 @@ void MainWindow::oneGet()
                 }
                 break;
             }
-            ptr++;
-            ptr%=(5+5);
+            receive_ptr++;
+            receive_ptr%=(5+5);
         }
         else if(MD == ANALYZE)
         {
             static uint8_t h , hh;
-            switch(ptr)
+            switch(receive_ptr)
             {
             case 0:
                 if((uint8_t)buf[i]!=255)
                 {
-                    ptr=4;
+                    receive_ptr=4;
                 }
                 break;
 
@@ -849,16 +885,18 @@ void MainWindow::oneGet()
                 break;
 
             }
-            ptr++;
-            ptr%=5;
+            receive_ptr++;
+            receive_ptr%=5;
 
         }
     }
+
+
 }
 
 void MainWindow::theta_btn_pressed()
 {
-    VAC_send_timer.stop(); // mandatory line
+    mandatoryPrep();
     MD=THETA;
     oneSend();
     data_adc.resize(data_adc.size(),0);
@@ -869,20 +907,22 @@ void MainWindow::theta_btn_pressed()
 
 void MainWindow::prog_btn_pressed()
 {
+    mandatoryPrep();
+    PROGRAM_done = 0;
     MD=PROGRAM;
-    VAC_send_timer.stop();
     //    reset_label->setText("targ");
     //    t2_label->setText("V+ max");
-    oneSend();
     data_adc.resize(data_adc.size(),0);
     for (auto& it:data_adc)
         it=0;
+
+    oneSend();
 }
 void MainWindow::rest_btn_pressed()
 {
-//    port.clear();
-    VAC_send_timer.stop();
-    MD=MEASURE;
+
+    mandatoryPrep();
+    MD=CUSTOM;
 
     char c;
     c=255;
@@ -922,23 +962,21 @@ void MainWindow::rest_btn_pressed()
 
 void MainWindow::gather_mult_btn_pressed()
 {
-    VAC_send_timer.stop();
+    mandatoryPrep();
     MD=GATHER_MULT;
     oneSend();
 }
 
 void MainWindow::separ_mult_btn_pressed()
 {
-    VAC_send_timer.stop();
-    ptr=0;
+    mandatoryPrep();
     MD=SEPAR_MULT;
     oneSend();
 }
 
 void MainWindow::shots_btn_pressed()
 {
-    VAC_send_timer.stop();
-    ptr=0;
+    mandatoryPrep();
     MD = ONE_SHOT;
     oneSend();
 
@@ -948,8 +986,7 @@ void MainWindow::shots_btn_pressed()
 
 void MainWindow::reset_btn_pressed()
 {   
-    VAC_send_timer.stop();
-    ptr=0;
+    mandatoryPrep();
     MD = RESET;
     oneSend();
 }
@@ -969,6 +1006,7 @@ void MainWindow::write_check_state_changed(int x)
 
 void MainWindow::chanPressed()
 {
+    mandatoryPrep();
     MD = THETA;
     QThread::msleep(100);
 
@@ -991,6 +1029,9 @@ void MainWindow::chanPressed()
 
 void MainWindow::VAC_check_changed()
 {
+    mandatoryPrep();
+
+    VAC_send_timer.start();
     MD=VAC;
 
     oneSend();
@@ -998,7 +1039,8 @@ void MainWindow::VAC_check_changed()
 
 void MainWindow::vac_btn_pressed()
 {
-    ptr=0;
+    mandatoryPrep();
+
     set_plot->setAxisAutoScale(QwtPlot::xBottom,1);
     set_plot->setAxisAutoScale(QwtPlot::xTop,1);
     set_plot->setAxisAutoScale(QwtPlot::yLeft,1);
@@ -1053,6 +1095,11 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 
     case Qt::Key_R:
 //        ReadFile("ShortCircuit",mapIV);
+
+        mandatoryPrep();
+        MD = JSON_MEASURE;
+        parseJson();
+        measure_timer.start();
         break;
 
 
@@ -1061,12 +1108,76 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
         break;
 
     case Qt::Key_P:
-        static int cnt=1;
-        QPixmap pix = QPixmap::grabWidget(set_plot);
-        pix.save(QString("E:/pics/graph")+QString::number(cnt)+QString(".png"),"PNG");
-        cnt++;
+
+        mandatoryPrep();
+        parseJson();
+        MD=JSON_PROGRAM;
+        json_program_timer.start();
+
+
+//        static int cnt=1;
+//        QPixmap pix = QPixmap::grabWidget(set_plot);
+//        pix.save(QString("E:/pics/graph")+QString::number(cnt)+QString(".png"),"PNG");
+//        cnt++;
     }
 
+}
+
+void MainWindow::json_program_timeout()
+{
+
+    qDebug()<<"timeout";
+    static int timeout_cnt = 0;
+
+
+    if(json_ws.empty()) {
+        qDebug()<<"json ws empty";
+        json_program_timer.stop();
+        return;
+    }
+
+
+    if(timeout_cnt < 100) {
+        if(!PROGRAM_done) {
+            timeout_cnt++;
+            return;
+        }
+        else {
+            qDebug()<<"channel: " << json_chan << ", program succeded";
+        }
+    }
+    else{
+        qDebug()<<"channel: " << json_chan << ", program failed";
+
+    }
+
+
+    json_chan = json_ws.begin()->first;
+    json_targ = json_ws.begin()->second;
+    json_ws.erase(json_ws.begin());
+    timeout_cnt = 0;
+
+    oneSend();
+
+}
+
+void MainWindow::json_measure_timeout()
+{
+    if(MD == JSON_MEASURE) {
+        if(!chans_to_meas.size()) {
+            measure_timer.stop();
+            return;
+        }
+
+        json_chan = chans_to_meas.back();
+
+        chans_to_meas.pop_back();
+        oneSend();
+        MD = JSON_MEASURE_CLOSE;
+    } else if(MD == JSON_MEASURE_CLOSE) {
+        oneSend();
+        MD = JSON_MEASURE;
+    }
 }
 
 void MainWindow::vac_send_timeout()
@@ -1083,12 +1194,12 @@ void MainWindow::setNewImg()
     cnt++; if(cnt>260)cnt=1;
 }
 
-void MainWindow::jsonSend() {
+void MainWindow::jsonInputs() {
     MD = JSON_INPUTS;
     oneSend();
     qDebug() << "MD is: " << static_cast<int>(MD);
     if(json_vs.empty()) {
-        disconnect(&json_input_send_timer, SIGNAL(timeout()),this,SLOT(jsonSend()));
+        json_input_send_timer.stop();
     }
 }
 
@@ -1096,7 +1207,9 @@ void MainWindow::jsonSend() {
 void MainWindow::parseJson() {
     qDebug() << "parseJson";
 
-    QFile inFile("input_vector.json");
+    QJsonValue value;
+
+    QFile inFile("input_data.json");
     inFile.open(QIODevice::ReadOnly|QIODevice::Text);
     QByteArray data = inFile.readAll();
     qDebug() << "data size of input file: " << data.size();
@@ -1111,14 +1224,14 @@ void MainWindow::parseJson() {
     qDebug() << doc;
     QJsonObject sett2 = doc.object();
 
-    double x_koeff = sett2.value("x_koeff").toDouble();
-    qDebug() << x_koeff;
+    double inp_coeff = sett2.value("input coeff").toDouble();
+    qDebug() << inp_coeff;
 
     json_vs.clear();
-    QJsonValue value = sett2.value(QString("inputs"));
+    value = sett2.value(QString("inputs"));
     for(const auto& el: value.toArray()) {
         int chan = el.toArray()[0].toInt();
-        json_vs[chan] = el.toArray()[1].toDouble() * x_koeff;
+        json_vs[chan] = el.toArray()[1].toDouble() * inp_coeff;
     }
 
     chans_to_meas.clear();
@@ -1126,14 +1239,28 @@ void MainWindow::parseJson() {
     for(const auto& el: value.toArray()) {
         chans_to_meas.push_back(el.toInt());
     }
-    qDebug()<<"chans to measure, number: "<<chans_to_meas.size();
+    qDebug()<<"chans to measure, size: "<<chans_to_meas.size();
+
+    json_ws.clear();
+    value = sett2.value(QString("weights targeted"));
+    for(const auto& el: value.toArray()) {
+        int chan = el.toArray()[0].toInt();
+        json_ws[chan] = el.toArray()[1].toInt();
+    }
+    qDebug()<<"ws targeted, size: "<<json_ws.size();
+
 }
 
-void MainWindow::parseInputJson() {
-    parseJson();
+void MainWindow::mandatoryPrep()
+{
+    json_program_timer.stop();
+    VAC_send_timer.stop();
+    receive_ptr = 0;
+}
 
-    json_input_send_timer.setInterval(40);
-    connect(&json_input_send_timer, SIGNAL(timeout()),this,SLOT(jsonSend()));
+void MainWindow::setInputJson() {
+    mandatoryPrep();
+    parseJson();
     json_input_send_timer.start();
 }
 
@@ -1157,8 +1284,13 @@ void MainWindow::oneSend()
 
 
     if(MD==JSON_INPUTS) {
-        c=THETA;
-    } else {
+        c = THETA;
+    } else if((MD==JSON_MEASURE)||(MD==JSON_MEASURE_CLOSE)) {
+        c = CUSTOM;
+    } else if(MD==JSON_PROGRAM) {
+        c = PROGRAM;
+    }
+    else {
         c = MD;
     }
     port.write(&c,1);//1
@@ -1173,10 +1305,14 @@ void MainWindow::oneSend()
             else
                 c=VAC_max_slider->value();
     else if((MD == ANALYZE) || (MD == ONE_SHOT) ||
-            (MD==PROGRAM) || (MD==MEASURE) || (MD==RESET))
+            (MD==PROGRAM) || (MD==CUSTOM) || (MD==RESET) || (MD==JSON_MEASURE) ||
+            (MD==JSON_PROGRAM))
     {
-        c=V_set_slider->value();
-    } else if(MD == THETA) {
+        c=VAC_mini_slider->value();
+    } else if((MD==JSON_MEASURE_CLOSE)) {
+        c = 0;
+    }
+    else if(MD == THETA) {
         c= theta_v_slider->value();
         qDebug()<<theta_v_slider->value();
     } else if(MD == JSON_INPUTS) {
@@ -1202,16 +1338,20 @@ void MainWindow::oneSend()
         c=V_ref_slider->value();
     port.write(&c,1);//3
 
-    if(MD!=PROGRAM)
-        c=V_reset_slider->value();
-    else
+    if(MD==PROGRAM)
         c=targ_slider->value();//target
+    else if(MD==JSON_PROGRAM) {
+        c = json_targ;
+    }
+    else
+        c=V_reset_slider->value();
+
     port.write(&c,1);//4
 
-    if(MD!=PROGRAM)
-        c=t2_le->text().toInt();
-    else
+    if((MD==PROGRAM)||(MD==JSON_PROGRAM))
         c=V_pl_max_slider->value();
+    else
+        c=t2_le->text().toInt();
     port.write(&c,1);//5
 
     c=dT_le->text().toInt();
@@ -1220,7 +1360,8 @@ void MainWindow::oneSend()
     c=T_le->text().toInt();
     port.write(&c,1);//7
 
-    if(MD==JSON_INPUTS){
+    if((MD==JSON_INPUTS)||(MD==JSON_MEASURE)||(MD==JSON_MEASURE_CLOSE) ||
+            (MD==JSON_PROGRAM)){
         c=json_chan;
     } else {
         c=chan;
