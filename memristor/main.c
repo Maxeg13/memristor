@@ -66,7 +66,7 @@ uint8_t STAT_V_step=0;
 uint8_t ptr=0, VAC_cnt;// WHAAAAT???
 uint8_t PROGRAM_done=0;
 uint8_t chan=0;
-uint8_t received=0;
+uint8_t mode_active = 0;
 char c;
 uint16_t _adc;
 uint16_t an_cnt=0, an_cnt_fast=0;
@@ -219,6 +219,9 @@ void main(void)
 //данный участок кода повторяется при переполнении TIMER2
 ISR(TIMER2_OVF_vect)
 {
+	if(!mode_active)
+		return;
+	
 	if(_ctr>time_step)
 	{
 		if(MD==MEASURE)
@@ -228,11 +231,10 @@ ISR(TIMER2_OVF_vect)
 			{
 			UDR0=255;
 			//prepareSetDAC(0,chan);
-				if(received) {
-					received = 0;
-					prepareSetDAC(x16,chan);
-					setDAC();
-				}
+
+			prepareSetDAC(x16,chan);
+			setDAC();
+				
 			}
 			else if(event_cnt==1)
 			{
@@ -256,7 +258,8 @@ ISR(TIMER2_OVF_vect)
 			}			
 			else if(event_cnt==5)
 			{	
-			UDR0=ADCH_;				
+			UDR0=ADCH_;	
+			mode_active = 0;
 			}	
 
 		}
@@ -268,11 +271,9 @@ ISR(TIMER2_OVF_vect)
 				UDR0=255;
 				x16 = x8;
 				x16 = x16<<4;
-				if(received) {
-					received = 0;
-					prepareSetDAC(x16,chan);
-					setDAC();
-				}
+
+				prepareSetDAC(x16,chan);
+				setDAC();				
 
 				ADCSRA |= (1 << ADSC); 
 			}
@@ -295,23 +296,20 @@ ISR(TIMER2_OVF_vect)
 			//DACset proging val
 			else if(event_cnt==4)
 			{
-				UDR0 =DUMMY_BYTE;	
+				UDR0 =DUMMY_BYTE;
+				mode_active = 0;
 			}
 		}
 		else if(MD==VAC)
-		{			
-			//static int i=0;
-			//i++;						
+		{							
 			
-			switch(VAC_cnt)
+			switch(event_cnt)
 			{
 				case 0:					
 				 ADCSRA |= (1 << ADSC); 
 				UDR0=255;
 				
 				break;
-				
-				
 				
 				case 1:	
 				ADCL__=	ADCL_;
@@ -332,9 +330,6 @@ ISR(TIMER2_OVF_vect)
 					
 					if(pos_phase)
 					{
-								//PORTC=0b00000010;
-			//PORTB=0b00011111;
-			//PORTD=0b11101100;
 						voltage16+=32;
 						if(voltage16>(ref16-1))
 						{
@@ -343,36 +338,21 @@ ISR(TIMER2_OVF_vect)
 					}
 					else
 					{
-						//PORTB=0;
-			//PORTC=0;
-			//PORTD=0;
 						voltage16-=32;
 						if(voltage16<(-x16+1))
 						{
 						pos_phase=1;									
 						}
-					}	
-					
-					
+					}						
 					
 					UDR0=voltage16>>4;
-					prepareSetDAC(voltage16,chan);
-					//prepareSetDAC(voltage16,1);
-					//prepareSetDAC(voltage16,2);
-					//prepareSetDAC(voltage16,3);
-					//prepareSetDAC(voltage16,4);
-					//prepareSetDAC(voltage16,5);
-					//prepareSetDAC(voltage16,6);
-					//prepareSetDAC(voltage16,7);				
+					prepareSetDAC(voltage16,chan);			
 					setDAC();
+					break;
 				case 4:
-					UDR0=DUMMY_BYTE;	
-				
+					UDR0=DUMMY_BYTE;
+					mode_active = 0;					
 			}
-						
-			
-			VAC_cnt++;
-			VAC_cnt%=5;
 		}
 		else if(MD==PROGRAM)
 		{
@@ -458,6 +438,7 @@ ISR(TIMER2_OVF_vect)
 				// UDR0 =DUMMY_BYTE;			
 				prepareSetDAC(0,chan);
 				setDAC();
+				mode_active = 0;
 			}
 		}
 		else if(MD == RESET) {
@@ -573,6 +554,7 @@ ISR(TIMER2_OVF_vect)
 			}
 			else if(event_cnt == 16) {				
 				UDR0 = DUMMY_BYTE;
+				mode_active = 0;
 			}
 			
 		}
@@ -684,32 +666,34 @@ ISR(TIMER2_OVF_vect)
 			}
 			else if(event_cnt == 16) {				
 				UDR0 = DUMMY_BYTE;
+				mode_active = 0;
 			}			
 		}
 		
 		
 		_ctr=0; 
+		if(mode_active) event_cnt++;
 		
 		
-		if(MD == ONE_SHOT)
-		{
-			if(event_cnt<17)
-				event_cnt++;
-		}
-		else if(MD == RESET) {
-			 if(event_cnt<17)
-				 event_cnt++;
-		}		
-		else if(MD == PROGRAM) {
-			event_cnt++;
-			if(event_cnt>7)
-				event_cnt = 0;
-		}
-		else{
-			event_cnt++;
-			if(event_cnt>T)
-				event_cnt=0;
-		}
+//		if(MD == ONE_SHOT)
+//		{
+//			if(event_cnt<17)
+//				event_cnt++;
+//		}
+//		else if(MD == RESET) {
+//			 if(event_cnt<17)
+//				 event_cnt++;
+//		}		
+//		else if(MD == PROGRAM) {
+//			event_cnt++;
+//			if(event_cnt>7)
+//				event_cnt = 0;
+//		}
+//		else{
+//			event_cnt++;
+//			if(event_cnt>T)
+//				event_cnt=0;
+//		}
 	}
 	_ctr++;
 }
@@ -742,9 +726,6 @@ ISR(USART_RX_vect)
 			//PROGRAM_start=1;
 			PROGRAM_done=0;
 			proging_val=0;
-		}
-		else if((MD==RESET)||(MD==ONE_SHOT)) {
-			event_cnt = 0;
 		}
 		break;
 		
@@ -802,13 +783,8 @@ ISR(USART_RX_vect)
 				
 			}
 			
-			
-			//if(MD!=PROGRAM)
-			//	set_reverser(chan, reverted[chan]);
-			//else 
-			//	set_reverser(chan, 0);
-			
-			received = 1;
+			event_cnt = 0;
+			mode_active = 1;
 		break;
 	}
 	

@@ -136,6 +136,7 @@ int voltage_ind;
 const int buf_N=30;
 char buf[buf_N];
 QTimer json_input_send_timer;
+QTimer VAC_send_timer;
 QTimer serial_get_timer;
 QTimer imit_timer;
 QTimer one_shot_timer;
@@ -183,6 +184,10 @@ MainWindow::MainWindow(QWidget *parent)
     //    vector<float> vv=vector<float>(2);
     //    vv[3]=3;
     //    qDebug()<<vv.size();
+
+    connect(&VAC_send_timer, SIGNAL(timeout()), this, SLOT(vac_send_timeout()));
+
+    // buttons
 
     rest_btn= new QPushButton("set zero voltage");
     prog_btn=new QPushButton("PROGRAM MODE");
@@ -509,6 +514,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
     serial_get_timer.setInterval(5);
+    VAC_send_timer.setInterval(20);
 
     imit_timer.setInterval(300);
     if(imitation_on)
@@ -852,8 +858,7 @@ void MainWindow::oneGet()
 
 void MainWindow::theta_btn_pressed()
 {
-//   disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(Serial_get()));
-
+    VAC_send_timer.stop(); // mandatory line
     MD=THETA;
     oneSend();
     data_adc.resize(data_adc.size(),0);
@@ -865,6 +870,7 @@ void MainWindow::theta_btn_pressed()
 void MainWindow::prog_btn_pressed()
 {
     MD=PROGRAM;
+    VAC_send_timer.stop();
     //    reset_label->setText("targ");
     //    t2_label->setText("V+ max");
     oneSend();
@@ -874,6 +880,8 @@ void MainWindow::prog_btn_pressed()
 }
 void MainWindow::rest_btn_pressed()
 {
+//    port.clear();
+    VAC_send_timer.stop();
     MD=MEASURE;
 
     char c;
@@ -914,12 +922,14 @@ void MainWindow::rest_btn_pressed()
 
 void MainWindow::gather_mult_btn_pressed()
 {
+    VAC_send_timer.stop();
     MD=GATHER_MULT;
     oneSend();
 }
 
 void MainWindow::separ_mult_btn_pressed()
 {
+    VAC_send_timer.stop();
     ptr=0;
     MD=SEPAR_MULT;
     oneSend();
@@ -927,6 +937,7 @@ void MainWindow::separ_mult_btn_pressed()
 
 void MainWindow::shots_btn_pressed()
 {
+    VAC_send_timer.stop();
     ptr=0;
     MD = ONE_SHOT;
     oneSend();
@@ -937,6 +948,7 @@ void MainWindow::shots_btn_pressed()
 
 void MainWindow::reset_btn_pressed()
 {   
+    VAC_send_timer.stop();
     ptr=0;
     MD = RESET;
     oneSend();
@@ -991,7 +1003,7 @@ void MainWindow::vac_btn_pressed()
     set_plot->setAxisAutoScale(QwtPlot::xTop,1);
     set_plot->setAxisAutoScale(QwtPlot::yLeft,1);
     set_plot->setAxisAutoScale(QwtPlot::yRight,1);
-    disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(oneGet()));
+//    disconnect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(oneGet()));
     //    reset_label->setText("tau1");
     t2_label->setText("tau2");
     for(auto& it:current)
@@ -1008,13 +1020,12 @@ void MainWindow::vac_btn_pressed()
     V_set_label->setText("V set");
     connect(&serial_get_timer, SIGNAL(timeout()),this,SLOT(oneGet()));
 
-
-    oneSend();
     data_adc.resize(data_adc.size(),0);
     for (auto& it:data_adc)
         it=0;
 
     curveADC->signalDrawing(1);
+    VAC_send_timer.start();
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *event)
@@ -1056,6 +1067,11 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
         cnt++;
     }
 
+}
+
+void MainWindow::vac_send_timeout()
+{
+    oneSend();
 }
 
 void MainWindow::setNewImg()
@@ -1215,6 +1231,7 @@ void MainWindow::oneSend()
     c=reverse_check->isChecked();
     reversed[chan]=reverse_check->isChecked();
     port.write(&c,1);//9
+
 }
 
 

@@ -17,6 +17,7 @@ public slots:
 //    void restSend(int chan_);
     void keyReleaseEvent(QKeyEvent *event);
 private slots:
+    void vac_send_timeout();
     void jsonSend();
     void parseInputJson();
     void setNewImg();
