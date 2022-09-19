@@ -370,7 +370,7 @@ ISR(TIMER2_OVF_vect)
 			}
 			else if(event_cnt == 1)
 			{
-				UDR0 =PROGRAM_done;
+				UDR0=DUMMY_BYTE;
 			}	
 
 			else
@@ -412,7 +412,7 @@ ISR(TIMER2_OVF_vect)
 			//DACset proging val
 			else if(event_cnt==4)
 			{
-				UDR0 =DUMMY_BYTE;		
+				UDR0 =PROGRAM_done;		
 				if(PROGRAM_done)
 					proging_val=0;	
 				
@@ -435,7 +435,7 @@ ISR(TIMER2_OVF_vect)
 			}
 			else if(event_cnt==5)//
 			{	
-				// UDR0 =DUMMY_BYTE;			
+				//UDR0 = PROGRAM_done;			
 				prepareSetDAC(0,chan);
 				setDAC();
 				
@@ -672,19 +672,22 @@ ISR(TIMER2_OVF_vect)
 		
 		
 		_ctr=0;  // mandatory
-		if(MD != PROGRAM)
+		if(MD != PROGRAM) {
 			if(mode_active) event_cnt++; // mandatory
-		else 
-			if(!PROGRAM_done) {
+		}
+		else {
+			if(!PROGRAM_done) 
+			{
 				event_cnt++; 
 				if(event_cnt > 7) 
 					event_cnt = 0;
-			} else {
+			} 
+			else {
 				event_cnt++; 
 				if(event_cnt > 7 ) 
 					event_cnt = 8;
 			}		
-		
+		}
 
 	}
 	_ctr++;

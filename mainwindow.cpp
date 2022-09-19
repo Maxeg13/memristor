@@ -707,25 +707,15 @@ void MainWindow::oneGet()
             switch(receive_ptr)
             {
             case 0:
+
                 if((uint8_t)buf[i]!=255)
                 {
                     receive_ptr=4;
                 }
                 break;
             case 1:
-
-                _PROGRAM_done = PROGRAM_done;
-                PROGRAM_done=(uint8_t)buf[i];
-                if(PROGRAM_done)
-                {
-                    prog_btn->setText("PROGRAM MODE: DONE");
-                    //                    prog_btn->set
-                }
-                else
-                    prog_btn->setText("PROGRAM MODE: ...");
                 break;
             case 2:
-
                 buf1=buf[i];
 
                 break;
@@ -739,8 +729,16 @@ void MainWindow::oneGet()
                 curveADC->signalDrawing(I_koef);
                 break;
             case 4:
+                _PROGRAM_done = PROGRAM_done;
+                PROGRAM_done=(uint8_t)buf[i];
+                if(PROGRAM_done)
+                {
+                    prog_btn->setText("PROGRAM MODE: DONE");
+                    //                    prog_btn->set
+                }
+                else
+                    prog_btn->setText("PROGRAM MODE: ...");
                 break;
-
             }
             receive_ptr++;
             receive_ptr%=5;
@@ -1126,7 +1124,6 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 void MainWindow::json_program_timeout()
 {
 
-    qDebug()<<"timeout";
     static int timeout_cnt = 0;
 
 
