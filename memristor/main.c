@@ -232,7 +232,7 @@ ISR(TIMER2_OVF_vect)
 			UDR0=255;
 			//prepareSetDAC(0,chan);
 
-			prepareSetDAC(x16,chan);
+			prepareSetDAC(ref16,chan);
 			setDAC();
 				
 			}
@@ -254,7 +254,9 @@ ISR(TIMER2_OVF_vect)
 			{	
 			ADCL_=ADCL;
 			ADCH_=ADCH;
-			UDR0=ADCL_;			
+			UDR0=ADCL_;	
+			prepareSetDAC(0,chan);	
+			setDAC();					
 			}			
 			else if(event_cnt==5)
 			{	

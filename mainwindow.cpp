@@ -60,7 +60,6 @@ enum MODE
     RESET,
     JSON_INPUTS,
     JSON_MEASURE,
-    JSON_MEASURE_CLOSE,
     JSON_PROGRAM
 };
 
@@ -604,7 +603,7 @@ void MainWindow::oneGet()
             receive_ptr++;
             receive_ptr%=5;
 
-        }else if((MD==JSON_MEASURE_CLOSE)) {  // cheat indeed
+        }else if(MD==JSON_MEASURE) {
             switch(receive_ptr)
             {
             case 0:
@@ -619,7 +618,8 @@ void MainWindow::oneGet()
                 ind_c=(ind_c+1)%data_adc.size();
                 hi = 512-(((((uint8_t)buf[i]<<8))|buf1  ));
 
-                qDebug()<<"channel: "<<json_chan<<", w: " << hi;
+                qDebug()<<"channel: "<<json_chan<<", w: " << hi <<", \t" << hi* I_koef<<" mkA, \t" <<
+                          (hi* I_koef)/(V_ref_slider->value()*V_koef*1000)<<" m Siemenses";
                 break;
             }
 
@@ -723,9 +723,9 @@ void MainWindow::oneGet()
                 ind_c=(ind_c+1)%data_adc.size();
 
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
-                if(!_PROGRAM_done && PROGRAM_done)
-                    qDebug()<<data_adc[ind_c]*I_koef;
-//                qDebug()<<data_adc[ind_c];
+                if(!_PROGRAM_done && PROGRAM_done){
+                    qDebug()<<"program done, current: "<<data_adc[ind_c]*I_koef<<"mkA";
+                }
                 curveADC->signalDrawing(I_koef);
                 break;
             case 4:
@@ -1160,21 +1160,15 @@ void MainWindow::json_program_timeout()
 
 void MainWindow::json_measure_timeout()
 {
-    if(MD == JSON_MEASURE) {
-        if(!chans_to_meas.size()) {
-            measure_timer.stop();
-            return;
-        }
-
-        json_chan = chans_to_meas.back();
-
-        chans_to_meas.pop_back();
-        oneSend();
-        MD = JSON_MEASURE_CLOSE;
-    } else if(MD == JSON_MEASURE_CLOSE) {
-        oneSend();
-        MD = JSON_MEASURE;
+    if(!chans_to_meas.size()) {
+        measure_timer.stop();
+        return;
     }
+
+    json_chan = chans_to_meas.back();
+
+    chans_to_meas.pop_back();
+    oneSend();
 }
 
 void MainWindow::vac_send_timeout()
@@ -1282,7 +1276,7 @@ void MainWindow::oneSend()
 
     if(MD==JSON_INPUTS) {
         c = THETA;
-    } else if((MD==JSON_MEASURE)||(MD==JSON_MEASURE_CLOSE)) {
+    } else if(MD==JSON_MEASURE) {
         c = CUSTOM;
     } else if(MD==JSON_PROGRAM) {
         c = PROGRAM;
@@ -1306,8 +1300,6 @@ void MainWindow::oneSend()
             (MD==JSON_PROGRAM))
     {
         c=VAC_mini_slider->value();
-    } else if((MD==JSON_MEASURE_CLOSE)) {
-        c = 0;
     }
     else if(MD == THETA) {
         c= theta_v_slider->value();
@@ -1330,7 +1322,6 @@ void MainWindow::oneSend()
                 c=VAC_max_slider->value();
             else
                 c=VAC_min_slider->value();
-
     else
         c=V_ref_slider->value();
     port.write(&c,1);//3
@@ -1357,7 +1348,7 @@ void MainWindow::oneSend()
     c=T_le->text().toInt();
     port.write(&c,1);//7
 
-    if((MD==JSON_INPUTS)||(MD==JSON_MEASURE)||(MD==JSON_MEASURE_CLOSE) ||
+    if((MD==JSON_INPUTS)||(MD==JSON_MEASURE) ||
             (MD==JSON_PROGRAM)){
         c=json_chan;
     } else {
