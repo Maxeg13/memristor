@@ -1,8 +1,6 @@
 #include "drawing.h"
-#include "drawing.h"
-#include "drawing.h"
-extern float V_koef;
-extern float I_koef;
+extern float DAC_2_V;
+extern float I_coef;
 vector<float> utilvec;
 int utilint;
 const int pen_size = 2;
@@ -146,7 +144,7 @@ void myCurve::set_Drawing(vector<float>& x, vector<float>& y, int i1, int i2 )
     int s=x.size();
     for(int i=0;i<(s);i++)
         if((i!=i1)&&(i!=i2))
-            points<<QPointF(V_koef*x[(i+i1+s)%s], I_koef*y[(i+i1+s)%s]);
+            points<<QPointF(DAC_2_V*x[(i+i1+s)%s], I_coef*y[(i+i1+s)%s]);
 
     setSamples( points ); // ассоциировать набор точек с кривой
     attach( d_plot); // отобразить кривую на графике

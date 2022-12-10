@@ -34,10 +34,11 @@ bool imitation_on =
 
 //0.070
 //0.06
-float V_koef=0.1;
+float DAC_2_V = 0.1;
+float V_2_DAC = 1/DAC_2_V;
 
 //11.
-float I_koef=5.7;
+float I_coef=5.7;
 using namespace std;
 QPushButton *vac_btn,  *prog_btn, *filler_btn, *reset_btn,
 *filler_btn1, *rest_btn, *gather_mult_btn, *separ_mult_btn, *shots_btn;
@@ -67,7 +68,7 @@ MODE MD;
 int json_chan;
 int json_targ;
 vector<int> chans_to_meas;
-map<int, int> json_vs;
+map<int, double> json_vs;
 map<int, int> json_ws;
 bool abstractIs;
 map<int,int> mapIV;
@@ -75,7 +76,7 @@ int reversed[CHAN_N];
 int adc_shift=120;
 int ind_p;
 int chan=0;
-int VAC_buf=300;//400
+int VAC_buf=250;//400
 int bufShowSize=40;
 QCheckBox* VAC_check;
 QCheckBox* write_check;
@@ -164,7 +165,7 @@ QFile* file_analyze;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    int V_m_ = 25;
+    int V_m_ = 15;
     for(int i=0;i<CHAN_N; i++)
     {
     reversed[i] = 0;
@@ -397,10 +398,16 @@ MainWindow::MainWindow(QWidget *parent)
     VAC_min_slider->setValue(30);
     //    chan_le=new QLineEdit("0");
     chan_cb=new QComboBox();
-
+    unsigned int chan_v2_start[] = {31, 47, 63, 15};
+//31 47 63 15
     for (int i =0 ;i<CHAN_N; i++)
     {
-        auto itemText = QString::number(i+1)+ " / "+ QString::number((i%8+1)) + " " + (((i/8)%2==1)?QString("down"):QString("up"));
+// v2
+        int start_ind = i/16;
+        int fast_ind = -i%16;
+//
+        auto itemText = QString::number(i)+ " / "+ QString::number((i%8)) + " " + ((((i/8)%2==1)?QString("down"):QString("up")) +
+                     QString(" // ") + QString::number(chan_v2_start[start_ind]+fast_ind) );
         chan_cb->addItem(itemText,i);
     }
 
@@ -596,7 +603,7 @@ void MainWindow::oneGet()
                 ind_c=(ind_c+1)%data_adc.size();
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-                curveADC->signalDrawing(I_koef);
+                curveADC->signalDrawing(I_coef);
                 break;
             }
 
@@ -618,8 +625,8 @@ void MainWindow::oneGet()
                 ind_c=(ind_c+1)%data_adc.size();
                 hi = 512-(((((uint8_t)buf[i]<<8))|buf1  ));
 
-                qDebug()<<"channel: "<<json_chan<<", w: " << hi <<", \t" << hi* I_koef<<" mkA, \t" <<
-                          (hi* I_koef)/(V_ref_slider->value()*V_koef*1000)<<" m Siemenses";
+                qDebug()<<"channel: "<<json_chan<<", w: " << hi <<", \t" << hi* I_coef<<" mkA, \t" <<
+                          (hi* I_coef)/(V_ref_slider->value()*DAC_2_V*1000)<<" m Siemenses";
                 break;
             }
 
@@ -723,16 +730,14 @@ void MainWindow::oneGet()
                 ind_c=(ind_c+1)%data_adc.size();
 
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
-                if(!_PROGRAM_done && PROGRAM_done){
-                    qDebug()<<"program done, current: "<<data_adc[ind_c]*I_koef<<"mkA";
-                }
-                curveADC->signalDrawing(I_koef);
+                curveADC->signalDrawing(I_coef);
                 break;
             case 4:
                 _PROGRAM_done = PROGRAM_done;
                 PROGRAM_done=(uint8_t)buf[i];
                 if(PROGRAM_done)
                 {
+                    qDebug()<<"program done, current: "<<data_adc[ind_c]*I_coef<<"mkA";
                     prog_btn->setText("PROGRAM MODE: DONE");
                     //                    prog_btn->set
                 }
@@ -766,7 +771,9 @@ void MainWindow::oneGet()
 
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
 
-                curveADC->signalDrawing(I_koef);
+                qDebug()<<"voltages inputs mode, current: "<<data_adc[ind_c]*I_coef;
+
+                curveADC->signalDrawing(I_coef);
                 break;
             case 4:
                 break;
@@ -796,7 +803,7 @@ void MainWindow::oneGet()
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 //                curveADC->signalDrawing(I_koef);
 
-                adch[0]=QString::number(data_adc1[ind_c]*I_koef);
+                adch[0]=QString::number(data_adc1[ind_c]*I_coef);
                 break;
             case 3:
                 buf1=(uint8_t)buf[i];
@@ -805,7 +812,7 @@ void MainWindow::oneGet()
             case 4:
                 data_adc2[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-                adch[1]=QString::number(data_adc2[ind_c]*I_koef);
+                adch[1]=QString::number(data_adc2[ind_c]*I_coef);
                 break;
             case 5:
                 buf1=(uint8_t)buf[i];
@@ -814,7 +821,7 @@ void MainWindow::oneGet()
             case 6:
                 data_adc3[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-                adch[2]=QString::number(data_adc3[ind_c]*I_koef);
+                adch[2]=QString::number(data_adc3[ind_c]*I_coef);
                 break;
             case 7:
                 buf1=(uint8_t)buf[i];
@@ -824,11 +831,11 @@ void MainWindow::oneGet()
                 data_adc4[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
                 vector<QwtPlotCurve*> curves{curveADC2, curveADC3, curveADC4};
-                curveADC->fourSignalsDrawing(I_koef,data_adc1,data_adc2,
+                curveADC->fourSignalsDrawing(I_coef,data_adc1,data_adc2,
                                              data_adc3,data_adc4,curves);
 
                 map<int, QString> mode_names{{RESET, "RESET MODE:"}, {ONE_SHOT, "SET MODE:  "}};
-                QString str = mode_names[(int)MD] + "    " + adch[0] + "    " + adch[1] + "    " + adch[2] + "    " + QString::number(data_adc4[ind_c]*I_koef);
+                QString str = mode_names[(int)MD] + "    " + adch[0] + "    " + adch[1] + "    " + adch[2] + "    " + QString::number(data_adc4[ind_c]*I_coef);
                 qDebug()<< str<<endl;
                 if(write_check->isChecked())
                 {
@@ -873,13 +880,13 @@ void MainWindow::oneGet()
                 ind_c=(ind_c+1)%data_adc.size();
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
                 //            data_adc[ind_c]=18000./(0.01+(100./(V1))*adc2mvs((uint8_t)buf[i]));
-                curveADC->signalDrawing(I_koef);
+                curveADC->signalDrawing(I_coef);
 
-                adch[0]=QString::number(data_adc[ind_c]*I_koef);
+                adch[0]=QString::number(data_adc[ind_c]*I_coef);
 
                 QTextStream outStream(file_analyze);
                 if(write_check->isChecked())
-                    outStream << h << "   "<<hh<<"   "<<QString::number(data_adc[ind_c]*I_koef)<<endl ;
+                    outStream << h << "   "<<hh<<"   "<<QString::number(data_adc[ind_c]*I_coef)<<endl ;
                 break;
 
             }
@@ -1109,6 +1116,8 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 
         mandatoryPrep();
         parseJson();
+        json_chan = 100;
+
         MD=JSON_PROGRAM;
         json_program_timer.start();
 
@@ -1126,36 +1135,33 @@ void MainWindow::json_program_timeout()
 
     static int timeout_cnt = 0;
 
-
-    if(json_ws.empty()) {
-        qDebug()<<"json ws empty";
-        json_program_timer.stop();
-        return;
-    }
-
-
+    // the same chan
     if(timeout_cnt < 100) {
         if(!PROGRAM_done) {
             timeout_cnt++;
             return;
         }
         else {
-            qDebug()<<"channel: " << json_chan << ", program succeded";
+            qDebug()<<"channel: " << json_chan  << ", program succeded";
         }
-    }
+    }//new channel
     else{
         qDebug()<<"channel: " << json_chan << ", program failed";
-
     }
 
+    if(json_ws.empty()) {
+        qDebug()<<"json ws empty";
+        rest_btn_pressed();
+        json_program_timer.stop();
+        return;
+    }
 
     json_chan = json_ws.begin()->first;
-    json_targ = json_ws.begin()->second;
+    json_targ = json_ws.begin()->second/I_coef;
     json_ws.erase(json_ws.begin());
     timeout_cnt = 0;
 
     oneSend();
-
 }
 
 void MainWindow::json_measure_timeout()
@@ -1219,10 +1225,11 @@ void MainWindow::parseJson() {
     qDebug() << inp_coeff;
 
     json_vs.clear();
-    value = sett2.value(QString("inputs"));
+    value = sett2.value(QString("voltages"));
     for(const auto& el: value.toArray()) {
         int chan = el.toArray()[0].toInt();
-        json_vs[chan] = el.toArray()[1].toDouble() * inp_coeff;
+        json_vs[chan] = el.toArray()[1].toDouble();
+        qDebug()<<"debug, voltages"<<json_vs[chan];
     }
 
     chans_to_meas.clear();
@@ -1259,16 +1266,16 @@ void MainWindow::oneSend()
 {
     serial_get_timer.setInterval(5);
     char c;
-    V_pl_max_label->setText("V+max: "+QString().setNum(V_koef*V_pl_max_slider->value(), 'g',2));
-    targ_label->setText("targ: "+QString().setNum(I_koef*targ_slider->value(), 'g',3));
-    VAC_min_label->setText("VAC- "+QString().setNum(V_koef*VAC_min_slider->value(), 'g',2));
-    VAC_max_label->setText("VAC+ "+QString().setNum(V_koef*VAC_max_slider->value(), 'g',2));
-    V_set_label->setText("V set: "+QString().setNum(V_koef*V_set_slider->value(), 'g',2));
-    reset_label->setText("V reset: "+QString().setNum(V_koef*V_reset_slider->value(), 'g',2));
-    V_ref_label->setText("Ref: "+QString().setNum(V_koef*V_ref_slider->value(), 'g',2));
-    VAC_check->setText("check: "+QString().setNum(V_koef*VAC_mini_slider->value(), 'g',2));
+    V_pl_max_label->setText("V+max: "+QString().setNum(DAC_2_V*V_pl_max_slider->value(), 'g',2));
+    targ_label->setText("targ: "+QString().setNum(I_coef*targ_slider->value(), 'g',3));
+    VAC_min_label->setText("VAC- "+QString().setNum(DAC_2_V*VAC_min_slider->value(), 'g',2));
+    VAC_max_label->setText("VAC+ "+QString().setNum(DAC_2_V*VAC_max_slider->value(), 'g',2));
+    V_set_label->setText("V set: "+QString().setNum(DAC_2_V*V_set_slider->value(), 'g',2));
+    reset_label->setText("V reset: "+QString().setNum(DAC_2_V*V_reset_slider->value(), 'g',2));
+    V_ref_label->setText("Ref: "+QString().setNum(DAC_2_V*V_ref_slider->value(), 'g',2));
+    VAC_check->setText("check: "+QString().setNum(DAC_2_V*VAC_mini_slider->value(), 'g',2));
 
-    theta_label->setText("theta_v: " + QString().setNum(V_koef*theta_v_slider->value(), 'g',2));
+    theta_label->setText("theta_v: " + QString().setNum(DAC_2_V*theta_v_slider->value(), 'g',2));
 
     c=255;
     port.write(&c,1);
@@ -1305,10 +1312,12 @@ void MainWindow::oneSend()
         c= theta_v_slider->value();
         qDebug()<<theta_v_slider->value();
     } else if(MD == JSON_INPUTS) {
-        json_chan = json_vs.begin()->first;
-        c = json_vs.begin()->second;
-        json_vs.erase(json_vs.begin());
-        qDebug()<<"json channel:"<< json_chan << ", json input: "<<(int)c * V_koef <<" V";
+        if(!json_vs.empty()) {
+            json_chan = json_vs.begin()->first;
+            c = json_vs.begin()->second * V_2_DAC;
+            qDebug()<<"json channel:"<< json_chan << ", json input: "<<json_vs.begin()->second <<" V";
+            json_vs.erase(json_vs.begin());
+        }
     }
     //2
     port.write(&c,1); // x!
