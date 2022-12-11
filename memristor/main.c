@@ -712,7 +712,10 @@ ISR(USART_RX_vect)
 		break;
 		
 		
-		case 1:
+		case 1: //MD
+		if((UDR0 == VAC)&&(MD != VAC)) {
+			voltage16 = 0;
+		}
 		MD=UDR0;
 		if(MD==VAC)
 			time_step=4;//5

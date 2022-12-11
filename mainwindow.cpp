@@ -159,7 +159,14 @@ void WriteFile(QString s);
 
 void ReadFile(QString s, map<int,int>& m);
 
-
+QString getChannelInfo(int i)   {
+    unsigned int chan_v2_start[] = {31, 47, 63, 15};
+    int start_ind = i/16;
+    int fast_ind = -i%16;
+    auto itemText = QString::number(i)+ " / "+ QString::number((i%8)) + " " + ((((i/8)%2==1)?QString("down"):QString("up")) +
+         QString(" // ") + QString::number(chan_v2_start[start_ind]+fast_ind) );
+    return itemText;
+}
 QFile* file_rand_stat;
 QFile* file_analyze;
 MainWindow::MainWindow(QWidget *parent)
@@ -383,7 +390,7 @@ MainWindow::MainWindow(QWidget *parent)
     V_ref_slider->setRange(0,30);
     V_set_slider->setValue(20);
     targ_slider->setRange(0,60);
-    VAC_mini_slider->setRange(0,30);
+    VAC_mini_slider->setRange(0, 3 * V_2_DAC);
     theta_v_slider->setRange(-126, 126);
 
 
@@ -394,20 +401,17 @@ MainWindow::MainWindow(QWidget *parent)
     t2_le=new QLineEdit("6");
     dT_le=new QLineEdit("10");
     T_le=new QLineEdit("8");
-    VAC_max_slider->setValue(30);
-    VAC_min_slider->setValue(30);
+    VAC_max_slider->setValue(1.5 * V_2_DAC);
+    VAC_min_slider->setValue(1.5 * V_2_DAC);
     //    chan_le=new QLineEdit("0");
     chan_cb=new QComboBox();
-    unsigned int chan_v2_start[] = {31, 47, 63, 15};
 //31 47 63 15
     for (int i =0 ;i<CHAN_N; i++)
     {
-// v2
-        int start_ind = i/16;
-        int fast_ind = -i%16;
+// v2        
+
 //
-        auto itemText = QString::number(i)+ " / "+ QString::number((i%8)) + " " + ((((i/8)%2==1)?QString("down"):QString("up")) +
-                     QString(" // ") + QString::number(chan_v2_start[start_ind]+fast_ind) );
+        auto itemText = getChannelInfo(i);
         chan_cb->addItem(itemText,i);
     }
 
@@ -523,7 +527,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(chan_cb,SIGNAL(currentIndexChanged(int)),this,SLOT(chanPressed()));
     connect(reverse_check,SIGNAL(stateChanged(int)),this,SLOT(oneSend()));
-    connect(VAC_check,SIGNAL(stateChanged(int)),this,SLOT(VAC_check_changed()));
+//    connect(VAC_check,SIGNAL(stateChanged(int)),this,SLOT(VAC_check_changed()));
     //    connect(V_reset_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     connect(t2_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
     connect(dT_le,SIGNAL(returnPressed()),this,SLOT(oneSend()));
