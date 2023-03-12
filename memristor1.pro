@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT += core gui
 QT += serialport
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -13,6 +13,8 @@ LIBS += -LC:/qwt-6.1.2/lib -lqwt
 
 TARGET = mem_prog
 TEMPLATE = app
+
+#CONFIG += console
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which has been marked as deprecated (the exact warnings

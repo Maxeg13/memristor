@@ -37,21 +37,19 @@ typedef enum
 //MEASURE - ручной режим 
 //VAC - режим вольт-амперной характеристики
 //PROGRAM - режим программирования проводимости мемристора
-MODE MD=MEASURE;//MEASURE - режим по умолчанию
-
-
+MODE MD = MEASURE;//MEASURE - режим по умолчанию
 
 uint8_t STAT_N = 17;
 uint8_t STAT_CYCLE = 5;
 uint8_t BIG_STAT_N;
 
 								//0,1,2,3 ,  4, 5, 6, 7}; 
-int16_t voltage16=0, voltage16_h=0, voltage16_hh=0;
+int16_t voltage16=0;
 int16_t proging_val=0;
 int16_t x16_grad;
-int16_t x16=0;
-int16_t x16_simple;
-int8_t 	x8;
+int16_t inp16=0;
+int16_t inp16_simple;
+int8_t 	inp8;
 int16_t ref16=0;
 int16_t reset16=0;
 uint8_t sync=0;
@@ -63,7 +61,7 @@ uint8_t T;
 uint8_t pos_phase=1;
 uint8_t STAT_dt_step=0;
 uint8_t STAT_V_step=0;
-uint8_t ptr=0, VAC_cnt;// WHAAAAT???
+uint8_t rec_ind=0, VAC_cnt;// WHAAAAT???
 uint8_t PROGRAM_done=0;
 uint8_t chan=0;
 uint8_t mode_active = 0;
@@ -165,7 +163,7 @@ void setDAC(){
 }
 
 
-void main(void)
+int main(void)
 {
 	BIG_STAT_N = STAT_N*STAT_CYCLE;
 	
@@ -271,10 +269,10 @@ ISR(TIMER2_OVF_vect)
 			if(event_cnt==0)//dT
 			{		
 				UDR0=255;
-				x16 = x8;
-				x16 = x16<<4;
+				inp16 = inp8;
+				inp16 = inp16<<4;
 
-				prepareSetDAC(x16,chan);
+				prepareSetDAC(inp16,chan);
 				setDAC();				
 
 				ADCSRA |= (1 << ADSC); 
@@ -302,6 +300,7 @@ ISR(TIMER2_OVF_vect)
 				mode_active = 0;
 			}
 		}
+		// VAC mode
 		else if(MD==VAC)
 		{							
 			
@@ -327,9 +326,7 @@ ISR(TIMER2_OVF_vect)
 				break;				
 				
 				case 3:								
-					
-					voltage16_h=voltage16;
-					
+										
 					if(pos_phase)
 					{
 						voltage16+=32;
@@ -341,7 +338,7 @@ ISR(TIMER2_OVF_vect)
 					else
 					{
 						voltage16-=32;
-						if(voltage16<(-x16+1))
+						if(voltage16<(-inp16+1))
 						{
 						pos_phase=1;									
 						}
@@ -359,8 +356,7 @@ ISR(TIMER2_OVF_vect)
 		else if(MD==PROGRAM)
 		{
 			T=16;
-			static uint16_t adc_h;
-			
+			static uint16_t adc_h;			
 
 			if(event_cnt==0)//dT
 			{		
@@ -374,7 +370,6 @@ ISR(TIMER2_OVF_vect)
 			{
 				UDR0=DUMMY_BYTE;
 			}	
-
 			else
 			if(event_cnt==2)//ADC GET 
 			{					 
@@ -397,52 +392,61 @@ ISR(TIMER2_OVF_vect)
 				//optimization
 				//put some window val here maybe?
 				//be  carefull with -
-				if((adc_h)<(uint16_t)(t1))
+				if((adc_h)<(uint16_t)(t1 - 1))
 				{
-					proging_val = -x16;  //set!
+					proging_val = -inp16;  // memristor set
 				}
-				else if((adc_h)<(uint16_t)(t1+1)) //done!
+				else if((adc_h)<(uint16_t)(t1+1 + 1)) //done!
 				{
-
 					PROGRAM_done=1;
 					proging_val=0;
 					prepareSetDAC(ref16,chan);
 					setDAC();
-				}
-				
+				}				
 			}
 			//DACset proging val
 			else if(event_cnt==4)
 			{
-				UDR0 =PROGRAM_done;		
+				UDR0 = PROGRAM_done;		
 				if(PROGRAM_done)
 					proging_val=0;	
 				
 				prepareSetDAC(proging_val,chan);
 				setDAC();
 							
-				if(proging_val == -x16)
+				if(proging_val == -inp16)
 				{
 					proging_val=0;
 				}					
 				else
 				if(proging_val>(t2<<4))
 				{
-					proging_val= -x16;
+					proging_val= -inp16;
 				}	
 				else
 				{
 					proging_val+=32;
 				}	
+				
+				// quick reset
+				//prepareSetDAC(0,chan);
+				//setDAC();
 			}
 			else if(event_cnt==5)//
 			{	
-				//UDR0 = PROGRAM_done;			
+				UDR0 = PROGRAM_done;			
 				prepareSetDAC(0,chan);
 				setDAC();
 				
+				if(PROGRAM_done) {
+					mode_active = 0;
+				}
+				
+				event_cnt = -1;				
 			}
-		}
+		} // MD PROGRAM
+		
+		// MD RESET
 		else if(MD == RESET) {
 			if(event_cnt==0)
 			{
@@ -567,7 +571,7 @@ ISR(TIMER2_OVF_vect)
 			}
 			else if(event_cnt==1)
 			{
-				prepareSetDAC(-x16,CHAN_1);				
+				prepareSetDAC(-inp16,CHAN_1);				
 				setDAC();
 			}		
 			else if(event_cnt==2)
@@ -674,38 +678,27 @@ ISR(TIMER2_OVF_vect)
 		
 		
 		_ctr=0;  // mandatory
-		if(MD != PROGRAM) {
-			if(mode_active) event_cnt++; // mandatory
-		}
-		else {
-			if(!PROGRAM_done) 
-			{
-				event_cnt++; 
-				if(event_cnt > 7) 
-					event_cnt = 0;
-			} 
-			else {
-				event_cnt++; 
-				if(event_cnt > 7 ) 
-					event_cnt = 8;
-			}		
-		}
+		
+
+		if(mode_active) event_cnt++; // mandatory
 
 	}
 	_ctr++;
 }
 
+uint8_t rec;
 //прием команд от компьютера по UART в зависимости от режима
 ISR(USART_RX_vect)
 {
-	switch(ptr)
+	rec = UDR0;
+	switch(rec_ind)
 	{
 		case 0:
-		if(UDR0!=255)//байт 255 является синхронизирующим
+		if(rec!=255)//байт 255 является синхронизирующим
 		{
 			sync=0;
-			ptr--;
-			ptr%=7;
+			rec_ind--;
+			rec_ind%=7;
 		}
 		else
 			sync=1;
@@ -713,10 +706,11 @@ ISR(USART_RX_vect)
 		
 		
 		case 1: //MD
-		if((UDR0 == VAC)&&(MD != VAC)) {
+		if((rec == VAC)&&(MD != VAC)) {
 			voltage16 = 0;
+			pos_phase = 0;
 		}
-		MD=UDR0;
+		MD=rec;
 		if(MD==VAC)
 			time_step=4;//5
 		else
@@ -731,45 +725,43 @@ ISR(USART_RX_vect)
 		
 		
 		case 2:	
-		x8 = UDR0;		
-		x16_simple = (uint8_t)x8;
-		x16 = x16_simple<<4;
+		inp8 = rec;		
+		inp16_simple = (uint8_t)inp8;
+		inp16 = inp16_simple<<4;
 		break;
 		case 3:	
-		ref16=UDR0<<4;
+		ref16=rec<<4;
 		break;
 		case 4:
 		if(MD==PROGRAM)
-			t1=UDR0;
+			t1=rec;
 		else
-			reset16=UDR0<<4;
+			reset16=rec<<4;
 		break;		
 		case 5:
 		
-		t2=UDR0;
+		t2=rec;
 	
 		
 		break;	
 		case 6:
-		dT=UDR0;
+		dT=rec;
 		break;
 		case 7:
-		T=UDR0;
+		T=rec;
 		break;
 		case 8:
-		chan=UDR0;
+		chan=rec;
 		break;
 		
 		case 9:
-			reverted[chan]=UDR0;
-		
-			//event_cnt=0;			
+			reverted[chan]=rec;				
 			
 			if(MD==GATHER_MULT)
 			{
 			//	PORTD=0b00100000;
 			//static int ff=1<<5;
-			//if(x16>>4)
+			//if(inp16>>4)
 			gatherMult();
 			//PORTD=(1<<5)^PORTD;
 			//PORTD=ff;
@@ -791,7 +783,7 @@ ISR(USART_RX_vect)
 
 	
 	dTt2=dT+t2;
-	//UDR0=x16/16;
-	ptr++;
-	ptr%=10;
+	//UDR0=inp16/16;
+	rec_ind++;
+	rec_ind%=10;
 }

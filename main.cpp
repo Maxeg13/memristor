@@ -9,5 +9,10 @@ int main(int argc, char *argv[])
     MainWindow w;
     w.show();
 
+
+//    QCoreApplication b(argc, argv);
+
+//    b.exec();
+
     return a.exec();
 }

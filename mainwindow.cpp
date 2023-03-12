@@ -87,8 +87,6 @@ QwtPlotCurve  *curveADC3;
 QwtPlotCurve  *curveADC4;
 //QwtPlot* ;
 int ind_c;
-int ind_c1;
-int ind_c2;
 QLabel* V_set_label;
 QLabel* V_pl_max_label;
 QLabel* theta_label;
@@ -152,7 +150,6 @@ QString qstr;
 QSerialPort port;
 int serial_inited;
 myCurve *setCurve;
-//QString filename = "Data.txt";
 
 void drawingInit(QwtPlot* d_plot, QString title);
 void WriteFile(QString s);
@@ -167,16 +164,15 @@ QString getChannelInfo(int i)   {
          QString(" // ") + QString::number(chan_v2_start[start_ind]+fast_ind) );
     return itemText;
 }
-QFile* file_rand_stat;
-QFile* file_analyze;
+
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     int V_m_ = 15;
-    for(int i=0;i<CHAN_N; i++)
-    {
-    reversed[i] = 0;
-    VAC_max[i] = VAC_min[i] = V_m_;
+    for(int i=0;i<CHAN_N; i++) {
+        reversed[i] = 0;
+        VAC_max[i] = VAC_min[i] = V_m_;
     }
 
 
@@ -184,11 +180,14 @@ MainWindow::MainWindow(QWidget *parent)
     curveADC2=new QwtPlotCurve;
     curveADC3=new QwtPlotCurve;
     curveADC4=new QwtPlotCurve;
-//    file_rand_stat = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\rand_stat.txt"));
-     file_rand_stat = new QFile(QString("rand_stat.txt"));
 
-    file_analyze = new QFile(QString("C:\\Users\\DrPepper\\Documents\\memristor\\analyze.txt"));
-    file_analyze->open(QIODevice::WriteOnly);
+//    {
+//        QFile file("some.txt");
+//        if(file.open(QIODevice::WriteOnly)) {
+//            QTextStream stream(&file);
+//            stream<<"some";
+//        }
+//    }
 
 
 //    ReadFile("ShortCircuit", mapIV);
@@ -284,11 +283,9 @@ MainWindow::MainWindow(QWidget *parent)
     cur_plot->setAxisScale(QwtPlot::xBottom,0,bufShowSize);
     curveADC=new myCurve(bufShowSize,data_adc,cur_plot,"EMG",Qt::black,Qt::black,ind_c);
     data_adc1.resize(bufShowSize);
-    ind_c1=0;
     data_adc2.resize(bufShowSize);
     data_adc3.resize(bufShowSize);
     data_adc4.resize(bufShowSize);
-    ind_c2=0;
     //    QImage image("C:/Users/DrPepper/Documents/memristor/Scheme.png");
     //    QMovie *movie = new QMovie("./rezero.gif");
     QImage image("./Crossbar.jpg");
@@ -342,7 +339,7 @@ MainWindow::MainWindow(QWidget *parent)
     VAC_max_label=new QLabel("VAC+");
     VAC_max_label->setMaximumWidth(labels_width);
 
-    infoLabel = new QLabel("channels order: black, blue, green, red");
+    infoLabel = new QLabel("program mode: set, V+max, target");
 
     QLabel* chan_label = new QLabel("cnannel ind");
     chan_label->setMaximumWidth(labels_width);
@@ -537,7 +534,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(theta_v_slider, SIGNAL(sliderReleased()),this,SLOT(oneSend()));
 
     serial_get_timer.setInterval(5);
-    VAC_send_timer.setInterval(18);
+    VAC_send_timer.setInterval(40); //18
 
     imit_timer.setInterval(300);
     if(imitation_on)
@@ -841,11 +838,11 @@ void MainWindow::oneGet()
                 map<int, QString> mode_names{{RESET, "RESET MODE:"}, {ONE_SHOT, "SET MODE:  "}};
                 QString str = mode_names[(int)MD] + "    " + adch[0] + "    " + adch[1] + "    " + adch[2] + "    " + QString::number(data_adc4[ind_c]*I_coef);
                 qDebug()<< str<<endl;
-                if(write_check->isChecked())
-                {
-                    QTextStream outStream(file_rand_stat);                    
-                    outStream << str<<endl;
-                }
+//                if(write_check->isChecked())
+//                {
+//                    QTextStream outStream(file);
+//                    outStream << str<<endl;
+//                }
                 break;
             }
             receive_ptr++;
@@ -888,9 +885,9 @@ void MainWindow::oneGet()
 
                 adch[0]=QString::number(data_adc[ind_c]*I_coef);
 
-                QTextStream outStream(file_analyze);
-                if(write_check->isChecked())
-                    outStream << h << "   "<<hh<<"   "<<QString::number(data_adc[ind_c]*I_coef)<<endl ;
+//                QTextStream outStream(file);
+//                if(write_check->isChecked())
+//                    outStream << h << "   "<<hh<<"   "<<QString::number(data_adc[ind_c]*I_coef)<<endl ;
                 break;
 
             }
@@ -1002,15 +999,7 @@ void MainWindow::reset_btn_pressed()
 
 void MainWindow::write_check_state_changed(int x)
 {
-    if(x==0)
-    {
-        file_analyze->close();
-        file_rand_stat->close();
-    }
-    else
-    {
-        file_rand_stat->open(QIODevice::WriteOnly);
-    }
+
 }
 
 void MainWindow::chanPressed()
@@ -1097,14 +1086,9 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
         break;
 
     case Qt::Key_W:
-
-//        WriteFile("ShortCircuit");
-
         break;
 
     case Qt::Key_R:
-//        ReadFile("ShortCircuit",mapIV);
-
         mandatoryPrep();
         MD = JSON_MEASURE;
         parseJson();
@@ -1120,11 +1104,15 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 
         mandatoryPrep();
         parseJson();
-        json_chan = 100;
 
         MD=JSON_PROGRAM;
         json_program_timer.start();
 
+        // added
+        json_chan = json_ws.begin()->first;
+        json_targ = json_ws.begin()->second/I_coef;
+        json_ws.erase(json_ws.begin());
+        oneSend();
 
 //        static int cnt=1;
 //        QPixmap pix = QPixmap::grabWidget(set_plot);
@@ -1155,7 +1143,6 @@ void MainWindow::json_program_timeout()
 
     if(json_ws.empty()) {
         qDebug()<<"json ws empty";
-        rest_btn_pressed();
         json_program_timer.stop();
         return;
     }
@@ -1310,7 +1297,7 @@ void MainWindow::oneSend()
             (MD==PROGRAM) || (MD==CUSTOM) || (MD==RESET) || (MD==JSON_MEASURE) ||
             (MD==JSON_PROGRAM))
     {
-        c=VAC_mini_slider->value();
+        c=V_set_slider->value();
     }
     else if(MD == THETA) {
         c= theta_v_slider->value();
