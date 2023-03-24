@@ -1,4 +1,4 @@
-//v1 , v2 are positive for VAC_mode (convert to -v1 and v2)
+ //v1 , v2 are positive for VAC_mode (convert to -v1 and v2)
 //20 us to 3.5 ms , 1V to 5V
 
 // shortcircuit  commented out
@@ -117,6 +117,8 @@ QCheckBox* abstract_check;
 QLabel* reset_label;
 QLabel* t2_label;
 
+QFile* file;
+
 //QLabel* t2_label;
 uint8_t PROGRAM_done=0;
 float V1;
@@ -139,7 +141,9 @@ int voltage_ind;
 const int buf_N=30;
 char buf[buf_N];
 
+int json_program_timeout_cnt = 0;
 QTimer json_program_timer;
+
 QTimer measure_timer;
 QTimer json_input_send_timer;
 QTimer VAC_send_timer;
@@ -181,8 +185,10 @@ MainWindow::MainWindow(QWidget *parent)
     curveADC3=new QwtPlotCurve;
     curveADC4=new QwtPlotCurve;
 
+    file = new QFile("logs.txt");
+    file->open(QIODevice::Append);
 //    {
-//        QFile file("some.txt");
+//
 //        if(file.open(QIODevice::WriteOnly)) {
 //            QTextStream stream(&file);
 //            stream<<"some";
@@ -199,7 +205,7 @@ MainWindow::MainWindow(QWidget *parent)
     //    vv[3]=3;
     //    qDebug()<<vv.size();
 
-    json_program_timer.setInterval(40);
+    json_program_timer.setInterval(100);
     json_input_send_timer.setInterval(40);
     measure_timer.setInterval(40);
     connect(&json_program_timer, SIGNAL(timeout()), this, SLOT(json_program_timeout()));
@@ -381,14 +387,14 @@ MainWindow::MainWindow(QWidget *parent)
         a->setRange(0,126);
         //        a->setMaximumWidth(labels_width*3);
         a->setTickPosition(QSlider::TickPosition::TicksAbove);
-        connect(a,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
-        //        connect(a,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
     }
     V_ref_slider->setRange(0,30);
     V_set_slider->setValue(20);
     targ_slider->setRange(0,60);
     VAC_mini_slider->setRange(0, 3 * V_2_DAC);
     theta_v_slider->setRange(-126, 126);
+    connect(VAC_max_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
+    connect(VAC_min_slider,SIGNAL(sliderReleased()),this,SLOT(oneSend()));
 
 
     serial_le=new QLineEdit("COM3");
@@ -534,7 +540,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(theta_v_slider, SIGNAL(sliderReleased()),this,SLOT(oneSend()));
 
     serial_get_timer.setInterval(5);
-    VAC_send_timer.setInterval(40); //18
+    VAC_send_timer.setInterval(20); //18
 
     imit_timer.setInterval(300);
     if(imitation_on)
@@ -622,13 +628,18 @@ void MainWindow::oneGet()
                 buf1=buf[i];
                 break;
             case 4:
+                {
+                    ind_c=(ind_c+1)%data_adc.size();
+                    hi = 512-(((((uint8_t)buf[i]<<8))|buf1  ));
 
-                ind_c=(ind_c+1)%data_adc.size();
-                hi = 512-(((((uint8_t)buf[i]<<8))|buf1  ));
+                    qDebug()<<"channel: "<<json_chan<<", w: " << hi <<", \t" << hi* I_coef<<" mkA, \t" <<
+                              (hi* I_coef)/(V_ref_slider->value()*DAC_2_V*1000)<<" m Siemenses";
+                    QTextStream stream(file);
 
-                qDebug()<<"channel: "<<json_chan<<", w: " << hi <<", \t" << hi* I_coef<<" mkA, \t" <<
-                          (hi* I_coef)/(V_ref_slider->value()*DAC_2_V*1000)<<" m Siemenses";
-                break;
+                    stream<<"channel: "<<json_chan<<", w: " << hi <<", \t" << hi* I_coef<<" mkA, \t" <<
+                            (hi* I_coef)/(V_ref_slider->value()*DAC_2_V*1000)<<" m Siemenses"<<endl;
+                    break;
+                }
             }
 
             receive_ptr++;
@@ -768,14 +779,18 @@ void MainWindow::oneGet()
 
                 break;
             case 3:
+            {
                 ind_c=(ind_c+1)%data_adc.size();
 
                 data_adc[ind_c]=512-(((((uint8_t)buf[i]<<8))|buf1  ));
 
                 qDebug()<<"voltages inputs mode, current: "<<data_adc[ind_c]*I_coef;
+                QTextStream stream(file);
+                stream<<"voltages inputs mode, current: "<<data_adc[ind_c]*I_coef<<endl;
 
                 curveADC->signalDrawing(I_coef);
                 break;
+            }
             case 4:
                 break;
 
@@ -1004,6 +1019,8 @@ void MainWindow::write_check_state_changed(int x)
 
 void MainWindow::chanPressed()
 {
+    QTextStream stream(file);
+    stream<<"chan pressed("<<endl;
     mandatoryPrep();
     MD = THETA;
     QThread::msleep(100);
@@ -1109,7 +1126,10 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
         json_program_timer.start();
 
         // added
+        json_program_timeout_cnt = 0;
         json_chan = json_ws.begin()->first;
+        infoLabel->setText(QString("program chan:") + QString::number(json_chan));
+        //chan_cb->setCurrentIndex(json_chan);
         json_targ = json_ws.begin()->second/I_coef;
         json_ws.erase(json_ws.begin());
         oneSend();
@@ -1122,35 +1142,43 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 
 }
 
+
 void MainWindow::json_program_timeout()
 {
 
-    static int timeout_cnt = 0;
-
     // the same chan
-    if(timeout_cnt < 100) {
+    if(json_program_timeout_cnt < 40) {
         if(!PROGRAM_done) {
-            timeout_cnt++;
+            json_program_timeout_cnt++;
             return;
         }
         else {
             qDebug()<<"channel: " << json_chan  << ", program succeded";
+            QTextStream stream(file);
+            stream<<"channel: " << json_chan  << ", program succeded"<<endl;
         }
     }//new channel
     else{
         qDebug()<<"channel: " << json_chan << ", program failed";
+        QTextStream stream(file);
+        stream<<"channel: " << json_chan << ", program failed"<<endl;
     }
 
     if(json_ws.empty()) {
-        qDebug()<<"json ws empty";
+        qDebug()<<"program routine finished";
+        QTextStream stream(file);
+        infoLabel->setText(QString("program routine finished"));
+        stream<<"program routine finished"<<endl;
         json_program_timer.stop();
         return;
     }
 
     json_chan = json_ws.begin()->first;
+//    chan_cb->setCurrentIndex(json_chan);
+    infoLabel->setText(QString("program chan:") + QString::number(json_chan));
     json_targ = json_ws.begin()->second/I_coef;
     json_ws.erase(json_ws.begin());
-    timeout_cnt = 0;
+    json_program_timeout_cnt = 0;
 
     oneSend();
 }
@@ -1242,12 +1270,16 @@ void MainWindow::parseJson() {
 
 void MainWindow::mandatoryPrep()
 {
+    QTextStream stream(file);
+    stream<<"mandatory prep!"<<endl;
     json_program_timer.stop();
     VAC_send_timer.stop();
     receive_ptr = 0;
 }
 
 void MainWindow::setInputJson() {
+    QTextStream stream(file);
+    stream<<"set input json!"<<endl;
     mandatoryPrep();
     parseJson();
     json_input_send_timer.start();
@@ -1303,7 +1335,7 @@ void MainWindow::oneSend()
         c= theta_v_slider->value();
         qDebug()<<theta_v_slider->value();
     } else if(MD == JSON_INPUTS) {
-        if(!json_vs.empty()) {
+        if(!json_vs.empty()) {            
             json_chan = json_vs.begin()->first;
             c = json_vs.begin()->second * V_2_DAC;
             qDebug()<<"json channel:"<< json_chan << ", json input: "<<json_vs.begin()->second <<" V";
